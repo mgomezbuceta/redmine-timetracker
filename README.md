@@ -9,6 +9,7 @@
 [![Electron](https://img.shields.io/badge/Electron-44-47848F?logo=electron&logoColor=white)](https://www.electronjs.org/)
 [![Plataformas](https://img.shields.io/badge/Linux%20%7C%20Windows%20%7C%20macOS-escritorio-2fbf86)](#-instalación)
 [![Licencia](https://img.shields.io/badge/licencia-Apache%202.0-blue)](LICENSE)
+[![Última versión](https://img.shields.io/github/v/release/mgomezbuceta/redmine-timetracker?label=versi%C3%B3n&color=2fbf86)](https://github.com/mgomezbuceta/redmine-timetracker/releases/latest)
 [![Instaladores](https://github.com/mgomezbuceta/redmine-timetracker/actions/workflows/installers.yml/badge.svg)](https://github.com/mgomezbuceta/redmine-timetracker/actions/workflows/installers.yml)
 
 <img src="capturas/dark-tasks.png" alt="Buscador de tareas agrupado por proyecto con árbol de subtareas" width="820">
@@ -68,12 +69,12 @@ Todo el registro de tiempo vive en tu equipo. Redmine solo se consulta para busc
 
 | Sistema | Formato | Notas |
 |---|---|---|
-| 🐧 **Linux** (Ubuntu, Debian y derivadas) | `.deb` | Configura solo el sandbox de Electron (perfil de AppArmor en Ubuntu 24.04) y añade la app al menú. |
-| 🪟 **Windows** 10/11 | Instalador `.exe` | Te deja elegir la carpeta de instalación. Se instala para tu usuario. |
-| 🍎 **macOS** | `.dmg` | Para Apple Silicon y para Intel. |
+| 🐧 **Linux** (Ubuntu, Debian y derivadas) | `redmine-timetracker_<versión>_amd64.deb` | Configura solo el sandbox de Electron (perfil de AppArmor en Ubuntu 24.04) y añade la app al menú. |
+| 🪟 **Windows** 10/11 | `Timetracker-Redmine-Setup-<versión>.exe` | Te deja elegir la carpeta de instalación. Se instala para tu usuario. |
+| 🍎 **macOS** | `Timetracker-Redmine-<versión>-arm64.dmg` / `-x64.dmg` | `arm64` para Apple Silicon (M1–M4), `x64` para Intel. |
 | 🛠️ **Código fuente** | `npm start` | Cualquier sistema con Node.js. Ideal para desarrollar. |
 
-Los instaladores se generan en la pestaña [**Actions**](https://github.com/mgomezbuceta/redmine-timetracker/actions/workflows/installers.yml) del repositorio: abre la última ejecución de *installers* y descarga el artefacto de tu sistema.
+**[⬇️ Descarga la última versión](https://github.com/mgomezbuceta/redmine-timetracker/releases/latest)** desde *Releases*. Cada versión incluye `SHA256SUMS.txt` para comprobar las descargas.
 
 ### 🐧 Linux
 
@@ -166,7 +167,13 @@ npm run dist:win     # instalador .exe (en Windows)
 npm run dist:mac     # .dmg (en macOS)
 ```
 
-Los instaladores salen en `instaladores/`. Para generar los tres a la vez, lanza el workflow **installers** desde la pestaña *Actions* o sube una etiqueta `v<versión>` (por ejemplo `v0.1.0`).
+Los instaladores salen en `instaladores/`. Para generar los tres a la vez, lanza el workflow **installers** desde la pestaña *Actions* o sube una etiqueta `v<versión>` (por ejemplo `v0.1.0`). Los instaladores quedan como artefactos de la ejecución; después se adjuntan a mano a la release de esa versión.
+
+### Ramas
+
+- `main`: versiones publicadas. Protegida: solo cambia mediante pull request.
+- `develop`: integración del trabajo en curso.
+- `feature/…`, `fix/…`, `docs/…`: una rama por cambio, que sale de `develop` y vuelve a ella mediante pull request.
 
 ```
 src/        proceso principal: temporizador, inactividad, cliente de Redmine, cifrado de la API key
