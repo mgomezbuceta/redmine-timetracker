@@ -1,0 +1,19 @@
+html, body { margin: 0; background: transparent; font: 13px system-ui, sans-serif; color: #e8e8ea; overflow: hidden; user-select: none; }
+.bar, .prompt { background: rgba(28, 30, 36, .94); border: 1px solid #3a3d46; border-radius: 10px; }
+.bar { height: 54px; box-sizing: border-box; display: flex; align-items: center; gap: 8px; padding: 0 8px; -webkit-app-region: drag; }
+.btn { -webkit-app-region: no-drag; border: 0; border-radius: 50%; width: 34px; height: 34px; font-size: 15px; cursor: pointer; color: #fff; background: #3a3d46; flex: none; }
+.btn.play { background: #2f8f4e; }
+.btn.stop { background: #b5443b; }
+.btn.small { width: 24px; height: 24px; background: transparent; font-size: 16px; }
+.task { -webkit-app-region: no-drag; flex: 1; min-width: 0; cursor: pointer; }
+.title, .sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.title { font-weight: 600; }
+.sub { font-size: 11px; color: #9a9ca5; }
+.times { text-align: right; flex: none; }
+.timer { font: 600 15px ui-monospace, monospace; }
+.today { font-size: 11px; color: #9a9ca5; }
+.prompt { margin-top: 4px; height: 50px; box-sizing: border-box; display: flex; align-items: center; gap: 6px; padding: 0 10px; border-color: #b58b3b; }
+.prompt span { flex: 1; font-size: 12px; }
+.prompt button { -webkit-app-region: no-drag; border: 0; border-radius: 6px; padding: 5px 9px; cursor: pointer; background: #3a3d46; color: #fff; }
+.prompt button[data-c="keep"] { background: #2f8f4e; }
+.hidden { display: none; }

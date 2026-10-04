@@ -1,0 +1,83 @@
+{
+  "name": "redmine-timetracker",
+  "version": "0.1.0",
+  "description": "Timetracker local con widget flotante y envío de horas a Redmine bajo revisión",
+  "main": "src/main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron . --ozone-platform=x11",
+    "test": "node --test test/*.test.js",
+    "dist:linux": "electron-builder --linux",
+    "dist:win": "electron-builder --win",
+    "dist:mac": "electron-builder --mac"
+  },
+  "devDependencies": {
+    "electron": "^44.5.1",
+    "electron-builder": "^26.15.3"
+  },
+  "author": {
+    "name": "Marcos Gómez Buceta",
+    "email": "mgomezbuceta@gmail.com"
+  },
+  "homepage": "https://github.com/mgomezbuceta/redmine-timetracker",
+  "build": {
+    "appId": "es.mgomezbuceta.redmine-timetracker",
+    "productName": "Timetracker Redmine",
+    "directories": {
+      "output": "instaladores",
+      "buildResources": "assets"
+    },
+    "files": [
+      "src/**",
+      "renderer/**",
+      "assets/**",
+      "package.json"
+    ],
+    "icon": "assets/icon.png",
+    "linux": {
+      "target": [
+        "deb"
+      ],
+      "category": "Utility",
+      "executableName": "redmine-timetracker",
+      "synopsis": "Control de tiempo por tarea de Redmine",
+      "syncDesktopName": true,
+      "executableArgs": [
+        "--ozone-platform=x11"
+      ]
+    },
+    "deb": {
+      "depends": [
+        "libsecret-1-0"
+      ]
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "category": "public.app-category.productivity"
+    }
+  },
+  "desktopName": "redmine-timetracker.desktop",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mgomezbuceta/redmine-timetracker.git"
+  },
+  "license": "Apache-2.0"
+}
