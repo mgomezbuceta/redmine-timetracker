@@ -2,6 +2,7 @@ const {
   app, BrowserWindow, Tray, Menu, ipcMain, dialog, powerMonitor, safeStorage, nativeImage, screen, nativeTheme, shell, session
 } = require('electron');
 const path = require('path');
+const https = require('https');
 const { JsonFile } = require('./store');
 const { RedmineClient } = require('./redmine');
 const { createKeyStore } = require('./secret');
@@ -35,6 +36,7 @@ const HEARTBEAT_MS = 30_000, IDLE_POLL_MS = 15_000;
 
 let settings, data, keys, tray, widgetWin, panelWin;
 let idlePrompt = null; // { idleStart, issue, activityId }
+let update = null; // { version } si hay una versión publicada más nueva
 
 // ---------- settings / datos ----------
 
@@ -50,6 +52,8 @@ function loadStores() {
     rounding: 'nearest',
     onlyOpen: true,
     writeEnabled: false,
+    checkUpdates: true,
+    dismissedUpdate: null,
     widgetPos: null
   });
   keys = createKeyStore(safeStorage, settings.data);
@@ -79,6 +83,36 @@ function isConfigured() {
 
 function activityName(id) {
   return data.data.activities.find(a => a.id === id)?.name || '';
+}
+
+// ---------- aviso de versión nueva ----------
+
+// Última release publicada en GitHub (solo se lee su etiqueta; nunca se descarga nada).
+function latestReleaseTag() {
+  return new Promise((resolve, reject) => {
+    const req = https.get(`https://api.github.com/repos/mgomezbuceta/redmine-timetracker/releases/latest`, {
+      headers: { 'User-Agent': 'redmine-timetracker', Accept: 'application/vnd.github+json' }, timeout: 10_000
+    }, res => {
+      if (res.statusCode !== 200) { res.resume(); return reject(new Error(`HTTP ${res.statusCode}`)); }
+      let body = '';
+      res.setEncoding('utf8');
+      res.on('data', c => { body += c; if (body.length > 1_000_000) req.destroy(new Error('Respuesta demasiado grande')); });
+      res.on('end', () => { try { resolve(JSON.parse(body).tag_name); } catch (e) { reject(e); } });
+    });
+    req.on('timeout', () => req.destroy(new Error('timeout')));
+    req.on('error', reject);
+  });
+}
+
+async function checkForUpdate() {
+  const tag = await latestReleaseTag();
+  update = core.isNewer(tag, app.getVersion()) ? { version: String(tag).replace(/^v/, '') } : null;
+  pushState();
+  return update;
+}
+
+function pendingUpdate() {
+  return update && update.version !== settings.data.dismissedUpdate ? update : null;
 }
 
 // ---------- temporizador ----------
@@ -182,7 +216,8 @@ function stateSnapshot() {
     lastIssue: data.data.lastIssue,
     todayBaseSeconds: todaySeconds() - (c ? (Date.now() - c.start) / 1000 : 0),
     configured: isConfigured(),
-    writeEnabled: settings.data.writeEnabled
+    writeEnabled: settings.data.writeEnabled,
+    update: pendingUpdate()
   };
 }
 
@@ -256,7 +291,9 @@ function updateTray() {
 function buildMenu() {
   const c = data.data.current;
   const last = data.data.lastIssue;
+  const upd = pendingUpdate();
   return Menu.buildFromTemplate([
+    ...(upd ? [{ label: `⬆ Nueva versión ${upd.version} disponible`, click: () => shell.openExternal(LINKS.releases) }, { type: 'separator' }] : []),
     c ? { label: `Parar #${c.issue.id}`, click: () => stopTimer() }
       : { label: last ? `Reanudar #${last.id}` : 'Reanudar', enabled: Boolean(last), click: () => startTimer(last, data.data.lastActivityId) },
     { type: 'separator' },
@@ -411,7 +448,7 @@ function registerIpc() {
   handle('settings:save', s => {
     if (s.url) RedmineClient.checkUrl(String(s.url)); // solo https
     if (s.apiKey) keys.set(s.apiKey); // valida y cifra antes de tocar nada más
-    const allowed = ['url', 'caPath', 'defaultActivityId', 'idleMinutes', 'rounding', 'onlyOpen', 'writeEnabled'];
+    const allowed = ['url', 'caPath', 'defaultActivityId', 'idleMinutes', 'rounding', 'onlyOpen', 'writeEnabled', 'checkUpdates'];
     for (const k of allowed) if (k in s) settings.data[k] = s[k];
     settings.data.idleMinutes = Math.max(1, Number(settings.data.idleMinutes) || 5);
     settings.save();
@@ -435,6 +472,15 @@ function registerIpc() {
     node: process.versions.node,
     platform: `${process.platform} ${process.arch}`
   }));
+  handle('update:check', async () => {
+    await checkForUpdate();
+    return { current: app.getVersion(), latest: update?.version || null };
+  });
+  handle('update:dismiss', () => {
+    settings.data.dismissedUpdate = update?.version || null;
+    settings.save();
+    pushState();
+  });
   handle('app:open', key => {
     if (!Object.hasOwn(LINKS, key)) throw new Error('Enlace no permitido');
     return shell.openExternal(LINKS[key]);
@@ -476,6 +522,11 @@ app.whenReady().then(() => {
   setInterval(idleTick, IDLE_POLL_MS);
   setInterval(heartbeat, HEARTBEAT_MS);
   setInterval(pushState, 60_000); // refresca minutos de inactividad en el aviso
+
+  // Aviso de versión nueva: al poco de arrancar y cada 6 h (se puede desactivar en Ajustes).
+  const autoCheck = () => { if (settings.data.checkUpdates) checkForUpdate().catch(() => {}); };
+  setTimeout(autoCheck, 15_000);
+  setInterval(autoCheck, 6 * 3600_000);
 
   if (!isConfigured()) openPanel('settings');
   else if (!data.data.activities.length) client().activities().then(a => { data.data.activities = a; data.save(); }).catch(() => {});
