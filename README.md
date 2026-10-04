@@ -34,6 +34,7 @@ Y lo hace sin riesgos: **la app no escribe nada en Redmine hasta que tú lo perm
 | 🌳 **Árbol de tareas** | Resultados agrupados por proyecto y con la jerarquía padre → subtareas, como en Redmine. |
 | 🚫 **Sin ruido** | Las tareas de proyectos cerrados o archivados no aparecen nunca. |
 | 💤 **Detección de inactividad** | Si te ausentas o suspendes el equipo, para el reloj donde empezó la inactividad y te pregunta: *Sumar*, *Descartar* o *Parar*. |
+| ✍️ **Tiempo manual** | ¿Se te olvidó encender el contador? Elige la tarea, la fecha, la hora de inicio y las horas, y añádelo a mano. |
 | 📝 **Revisión del día** | Agrupada por tarea y actividad, con redondeo a 0,25 h. Cada tramo lleva **su comentario obligatorio**, y con ellos se forma el comentario de la entrada de tiempo. |
 | 📊 **Resúmenes** | Diario y semanal (de lunes a domingo), con barras y mapa de calor. |
 | 🔐 **API key como una contraseña** | Cifrada con el almacén seguro del sistema y nunca en claro en disco. |
@@ -114,7 +115,7 @@ npm start
 
 La primera vez se abre la pestaña **Ajustes**:
 
-1. **URL de Redmine**: la dirección de tu servidor, por ejemplo `https://redmine.tuempresa.com`.
+1. **URL de Redmine**: la dirección de tu servidor, por ejemplo `https://redmine.tuempresa.com`. Tiene que ser `https://`: la app no envía la API key por una conexión sin cifrar.
 2. **API key**: en Redmine, *Mi cuenta → Clave de acceso a la API*. Son 40 caracteres hexadecimales.
 3. **Certificado de la CA interna** *(opcional)*: solo si el certificado HTTPS de tu Redmine lo firma una CA de tu empresa. Elige su `.crt`, `.pem` o `.cer` (PEM o DER). Si al probar la conexión ves *self signed certificate in certificate chain*, es esto lo que falta.
 4. Pulsa **Probar conexión**: verás tu usuario y se cargarán las actividades.
@@ -132,6 +133,22 @@ La primera vez se abre la pestaña **Ajustes**:
 - La ventana de la app nunca recibe la clave: solo sabe si hay una guardada.
 - Puedes borrarla en cualquier momento desde *Ajustes*.
 
+### 🛡️ Otras medidas de seguridad
+
+- Ventanas aisladas (sandbox, aislamiento de contexto, sin Node.js) con una política de contenido estricta. No pueden navegar a otras páginas ni abrir ventanas, y solo pueden llamar a una lista cerrada de funciones de la app.
+- Conexión con Redmine solo por HTTPS y con el certificado siempre verificado.
+- Antes de imputar, la tarea y los comentarios se reconstruyen desde los tramos guardados, y las horas y la actividad se validan.
+- Ejecutable endurecido con los *fuses* de Electron: no se puede usar como intérprete de Node.js y solo carga el código empaquetado de la app.
+- Sin dependencias en tiempo de ejecución, y Dependabot vigila las de desarrollo y las de la CI.
+
+### ✅ Verificar que un instalador es auténtico
+
+Desde la versión 0.2.0, cada instalador de una release lleva una atestación de procedencia firmada por GitHub Actions. Para comprobar que lo ha generado este repositorio:
+
+```bash
+gh attestation verify redmine-timetracker_<versión>_amd64.deb -R mgomezbuceta/redmine-timetracker
+```
+
 ## 🚀 Uso diario
 
 | Quiero… | Cómo |
@@ -140,10 +157,12 @@ La primera vez se abre la pestaña **Ajustes**:
 | Parar o reanudar | Botón ■ / ▶ del widget, el panel o el menú del icono de la bandeja. |
 | Buscar en un proyecto concreto | Desplegable de proyecto bajo el buscador (favoritos primero, luego los proyectos en los que participas). |
 | Volver a una tarea reciente | Chip **Recientes** en el buscador. |
+| Imputar sin el contador | **＋ Horas** en cualquier tarea del buscador, o **＋ Tiempo manual** en *Revisión del día*: fecha, hora de inicio, horas, actividad y comentario. Se revisa e imputa como el resto. |
 | Ausentarme | No hagas nada: al volver, la app te pregunta qué hacer con ese tiempo. |
 | Cerrar el día | Menú → **Revisión del día**: comenta cada tramo, ajusta y pulsa **Imputar en Redmine**. |
 | Corregir un error | En *Tramos registrados* puedes borrar un tramo equivocado antes de imputar. |
 | Ver cómo va la semana | Pestaña **Resúmenes**. |
+| Ver la versión o informar de un problema | Pestaña **Acerca de** (o menú del icono de la bandeja → *Acerca de*). |
 
 ### Dónde se guardan tus datos
 

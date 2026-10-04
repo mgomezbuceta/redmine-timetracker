@@ -1,5 +1,5 @@
 const {
-  app, BrowserWindow, Tray, Menu, ipcMain, dialog, powerMonitor, safeStorage, nativeImage, screen, nativeTheme
+  app, BrowserWindow, Tray, Menu, ipcMain, dialog, powerMonitor, safeStorage, nativeImage, screen, nativeTheme, shell, session
 } = require('electron');
 const path = require('path');
 const { JsonFile } = require('./store');
@@ -19,6 +19,16 @@ if (process.platform === 'linux' && !app.commandLine.hasSwitch('ozone-platform')
 app.setName('redmine-timetracker');
 
 if (!app.requestSingleInstanceLock()) app.quit();
+
+// Únicos enlaces externos que la interfaz puede abrir (en el navegador del sistema).
+const REPO = 'https://github.com/mgomezbuceta/redmine-timetracker';
+const LINKS = {
+  repo: REPO,
+  releases: `${REPO}/releases`,
+  issues: `${REPO}/issues`,
+  license: `${REPO}/blob/main/LICENSE`,
+  author: 'https://github.com/mgomezbuceta'
+};
 
 const WIDGET_W = 380, WIDGET_H = 56, WIDGET_H_PROMPT = 112;
 const HEARTBEAT_MS = 30_000, IDLE_POLL_MS = 15_000;
@@ -186,7 +196,10 @@ function pushState() {
   updateTray();
 }
 
-const webPrefs = { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true };
+const webPrefs = {
+  preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true,
+  devTools: !app.isPackaged // sin herramientas de desarrollador en la versión instalada
+};
 
 function createWidget() {
   const area = screen.getPrimaryDisplay().workArea;
@@ -251,6 +264,7 @@ function buildMenu() {
     { label: 'Revisión del día', click: () => openPanel('review') },
     { label: 'Resúmenes', click: () => openPanel('summary') },
     { label: 'Ajustes', click: () => openPanel('settings') },
+    { label: 'Acerca de', click: () => openPanel('about') },
     { type: 'separator' },
     { label: 'Mostrar/ocultar widget', click: () => widgetWin.isVisible() ? widgetWin.hide() : widgetWin.showInactive() },
     { label: 'Salir', click: () => { stopTimer(); app.exit(0); } }
@@ -332,6 +346,17 @@ function registerIpc() {
     data.data.segments = data.data.segments.filter(s => s.id !== id);
     data.save(); pushState();
   });
+  // Tiempo añadido a mano, sin contador. Pasa por la revisión como cualquier otro tramo.
+  handle('segments:addManual', entry => {
+    const busy = [...data.data.segments];
+    if (data.data.current) busy.push({ start: data.data.current.start, end: Date.now() }); // contador en marcha
+    const seg = core.manualSegment(entry, busy);
+    data.data.segments.push({ id: `${seg.start}-${seg.issueId}-m`, ...seg });
+    rememberRecent({ id: seg.issueId, subject: seg.subject, project: seg.project });
+    data.save(); pushState();
+    return seg;
+  });
+  handle('segments:suggestStart', date => core.suggestStart(data.data.segments, date));
   handle('segments:setComment', (id, comment) => {
     const s = data.data.segments.find(x => x.id === id);
     if (!s) throw new Error('Tramo no encontrado');
@@ -345,15 +370,11 @@ function registerIpc() {
   });
   handle('review:submit', async (date, rows) => {
     if (!settings.data.writeEnabled) throw new Error('La escritura en Redmine está desactivada en Ajustes.');
-    rows = rows.filter(r => r.include && r.hours > 0);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date))) throw new Error('Fecha no válida.');
+    // Tarea y comentarios salen de los tramos guardados; horas y actividad se validan.
+    rows = core.prepareSubmission(Array.isArray(rows) ? rows : [], core.buildReview(data.data.segments, date),
+      data.data.activities.map(a => a.id));
     if (!rows.length) throw new Error('No hay filas marcadas para enviar.');
-    // Los comentarios salen de los tramos guardados, no de lo que mande la ventana.
-    const truth = new Map(core.buildReview(data.data.segments, date).map(g => [g.key, g]));
-    const uncommented = rows.filter(r => !truth.get(r.key) || truth.get(r.key).uncommented > 0);
-    if (uncommented.length) throw new Error(`Falta el comentario de algún tramo en: ${uncommented.map(r => '#' + r.issueId).join(', ')}. Complétalos en "Tramos registrados".`);
-    rows = rows.map(r => ({ ...r, comments: truth.get(r.key).comments }));
-    const missing = rows.filter(r => !r.activityId);
-    if (missing.length) throw new Error(`Falta la actividad en: ${missing.map(r => '#' + r.issueId).join(', ')}`);
     const total = rows.reduce((a, r) => a + r.hours, 0);
     const { response } = await dialog.showMessageBox(panelWin, {
       type: 'question', buttons: ['Cancelar', 'Enviar'], defaultId: 0, cancelId: 0,
@@ -388,6 +409,7 @@ function registerIpc() {
     return { ...rest, ...keys.status() };
   });
   handle('settings:save', s => {
+    if (s.url) RedmineClient.checkUrl(String(s.url)); // solo https
     if (s.apiKey) keys.set(s.apiKey); // valida y cifra antes de tocar nada más
     const allowed = ['url', 'caPath', 'defaultActivityId', 'idleMinutes', 'rounding', 'onlyOpen', 'writeEnabled'];
     for (const k of allowed) if (k in s) settings.data[k] = s[k];
@@ -406,6 +428,17 @@ function registerIpc() {
     data.save();
     return { user: `${u.firstname} ${u.lastname} (${u.login})`, activities: data.data.activities.length };
   });
+  handle('app:info', () => ({
+    version: app.getVersion(),
+    electron: process.versions.electron,
+    chrome: process.versions.chrome,
+    node: process.versions.node,
+    platform: `${process.platform} ${process.arch}`
+  }));
+  handle('app:open', key => {
+    if (!Object.hasOwn(LINKS, key)) throw new Error('Enlace no permitido');
+    return shell.openExternal(LINKS[key]);
+  });
   handle('settings:pickCa', async () => {
     const r = await dialog.showOpenDialog(panelWin, { properties: ['openFile'], filters: [{ name: 'Certificados', extensions: ['crt', 'pem', 'cer'] }] });
     return r.canceled ? null : r.filePaths[0];
@@ -415,9 +448,19 @@ function registerIpc() {
 // ---------- arranque ----------
 
 app.on('second-instance', () => openPanel('tasks'));
+
+// Las ventanas solo muestran los ficheros locales de la app: ni navegan a otra
+// página ni abren ventanas nuevas (los enlaces externos pasan por 'app:open').
+app.on('web-contents-created', (_e, wc) => {
+  wc.on('will-navigate', e => e.preventDefault());
+  wc.setWindowOpenHandler(() => ({ action: 'deny' }));
+});
 app.on('window-all-closed', e => e.preventDefault?.());
 
 app.whenReady().then(() => {
+  // La app no usa cámara, micrófono, notificaciones ni ningún otro permiso del navegador.
+  session.defaultSession.setPermissionRequestHandler((_wc, _perm, cb) => cb(false));
+  session.defaultSession.setPermissionCheckHandler(() => false);
   loadStores();
   recoverFromCrash();
   registerIpc();
