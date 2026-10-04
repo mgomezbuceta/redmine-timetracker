@@ -167,7 +167,7 @@ npm run dist:win     # instalador .exe (en Windows)
 npm run dist:mac     # .dmg (en macOS)
 ```
 
-Los instaladores salen en `instaladores/`. Para generar los tres a la vez, lanza el workflow **installers** desde la pestaña *Actions* o sube una etiqueta `v<versión>` (por ejemplo `v0.1.0`); los instaladores quedan como artefactos de la ejecución y se adjuntan a la release de esa versión.
+Los instaladores salen en `instaladores/`. Para generar los tres a la vez, lanza el workflow **installers** desde la pestaña *Actions* o sube una etiqueta `v<versión>` (por ejemplo `v0.1.0`). Los instaladores quedan como artefactos de la ejecución; después se adjuntan a mano a la release de esa versión.
 
 ### Ramas
 
