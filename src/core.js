@@ -115,4 +115,33 @@ function weeklySummary(segments, date, rounding) {
   return { days, issues, totals, seconds: Object.values(totals).reduce((a, b) => a + b, 0) };
 }
 
-module.exports = { localDate, splitByDay, roundHours, buildReview, weekDates, dailySummary, weeklySummary, segmentsOfDate };
+const hhmm = ts => { const d = new Date(ts); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+
+// Tramo de tiempo añadido a mano (sin contador). Lanza un Error con el motivo si no es válido.
+function manualSegment({ issue, activityId, date, start, hours, comment }, existing = []) {
+  if (!issue || !Number.isInteger(Number(issue.id)) || Number(issue.id) <= 0) throw new Error('Elige una tarea válida.');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date)) || localDate(new Date(`${date}T12:00:00`).getTime()) !== date) throw new Error('La fecha no es válida.');
+  const m = /^(\d{2}):(\d{2})$/.exec(String(start));
+  if (!m || Number(m[1]) > 23 || Number(m[2]) > 59) throw new Error('La hora de inicio no es válida.');
+  const minutes = Math.round(Number(hours) * 60);
+  if (!(minutes > 0 && minutes <= 24 * 60)) throw new Error('Indica las horas (mayor que 0).');
+  const text = String(comment || '').trim();
+  if (!text) throw new Error('El comentario es obligatorio.');
+  const from = new Date(`${date}T${start}:00`).getTime();
+  const to = from + minutes * 60_000;
+  if (to > startOfNextDay(from)) throw new Error('El tramo debe acabar el mismo día (antes de las 24:00).');
+  const clash = existing.find(x => x.start < to && x.end > from);
+  if (clash) throw new Error(`Se solapa con otro tramo de ${hhmm(clash.start)} a ${hhmm(clash.end)}.`);
+  return {
+    issueId: Number(issue.id), subject: String(issue.subject || '').slice(0, 255), project: String(issue.project || '').slice(0, 255),
+    activityId: activityId ?? null, start: from, end: to, comment: text.slice(0, 500), manual: true
+  };
+}
+
+// Hora propuesta para un tramo manual: donde acaba el último tramo del día, o las 09:00.
+function suggestStart(segments, date) {
+  const last = Math.max(0, ...segmentsOfDate(segments, date).map(s => s.end));
+  return last ? hhmm(last) : '09:00';
+}
+
+module.exports = { localDate, splitByDay, roundHours, buildReview, weekDates, dailySummary, weeklySummary, segmentsOfDate, manualSegment, suggestStart };

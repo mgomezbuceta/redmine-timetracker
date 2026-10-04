@@ -66,6 +66,7 @@
         <p class="lead">Ajusta horas, actividad y comentario antes de imputar.</p>
       </div>
       <div class="date-nav">
+        <button class="btn" id="manualBtn" title="Imputar horas sin usar el contador">＋ Tiempo manual</button>
         <button class="btn btn-icon" data-shift="-1" data-for="reviewDate" title="Día anterior">‹</button>
         <input type="date" id="reviewDate">
         <button class="btn btn-icon" data-shift="1" data-for="reviewDate" title="Día siguiente">›</button>
@@ -188,6 +189,29 @@
     </form>
   </section>
 </main>
+<dialog id="manualDlg" class="dlg">
+  <form id="manualForm">
+    <h2>Imputar horas sin contador</h2>
+    <p class="dlg-lead">Se añade como un tramo más y se imputa desde «Revisión del día», como el resto.</p>
+    <div class="field">
+      <label for="m-issue">Tarea</label>
+      <input id="m-issue" placeholder="Número de la tarea, p. ej. 1234" autocomplete="off">
+      <small id="m-issueInfo"></small>
+    </div>
+    <div class="field-row">
+      <div class="field"><label for="m-date">Fecha</label><input id="m-date" type="date" required></div>
+      <div class="field"><label for="m-start">Hora de inicio</label><input id="m-start" type="time" required></div>
+      <div class="field"><label for="m-hours">Horas</label><input id="m-hours" type="number" min="0.25" max="24" step="0.25" value="1" required></div>
+    </div>
+    <div class="field"><label for="m-act">Actividad</label><select id="m-act"></select></div>
+    <div class="field"><label for="m-comment">Comentario</label><input id="m-comment" maxlength="500" required placeholder="¿Qué has hecho? (obligatorio)"></div>
+    <p id="m-msg" class="msg"></p>
+    <div class="dlg-actions">
+      <button type="button" class="btn" id="m-cancel">Cancelar</button>
+      <button class="btn btn-primary">Añadir tiempo</button>
+    </div>
+  </form>
+</dialog>
 <div id="toast" class="toast"></div>
 <script src="panel.js"></script>
 </body>
