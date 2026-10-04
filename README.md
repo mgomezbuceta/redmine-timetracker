@@ -146,6 +146,7 @@ La primera vez se abre la pestaña **Ajustes**:
 | Cerrar el día | Menú → **Revisión del día**: comenta cada tramo, ajusta y pulsa **Imputar en Redmine**. |
 | Corregir un error | En *Tramos registrados* puedes borrar un tramo equivocado antes de imputar. |
 | Ver cómo va la semana | Pestaña **Resúmenes**. |
+| Ver la versión o informar de un problema | Pestaña **Acerca de** (o menú del icono de la bandeja → *Acerca de*). |
 
 ### Dónde se guardan tus datos
 
