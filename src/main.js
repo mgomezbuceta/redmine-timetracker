@@ -1,5 +1,5 @@
 const {
-  app, BrowserWindow, Tray, Menu, ipcMain, dialog, powerMonitor, safeStorage, nativeImage, screen, nativeTheme
+  app, BrowserWindow, Tray, Menu, ipcMain, dialog, powerMonitor, safeStorage, nativeImage, screen, nativeTheme, shell
 } = require('electron');
 const path = require('path');
 const { JsonFile } = require('./store');
@@ -19,6 +19,16 @@ if (process.platform === 'linux' && !app.commandLine.hasSwitch('ozone-platform')
 app.setName('redmine-timetracker');
 
 if (!app.requestSingleInstanceLock()) app.quit();
+
+// Únicos enlaces externos que la interfaz puede abrir (en el navegador del sistema).
+const REPO = 'https://github.com/mgomezbuceta/redmine-timetracker';
+const LINKS = {
+  repo: REPO,
+  releases: `${REPO}/releases`,
+  issues: `${REPO}/issues`,
+  license: `${REPO}/blob/main/LICENSE`,
+  author: 'https://github.com/mgomezbuceta'
+};
 
 const WIDGET_W = 380, WIDGET_H = 56, WIDGET_H_PROMPT = 112;
 const HEARTBEAT_MS = 30_000, IDLE_POLL_MS = 15_000;
@@ -251,6 +261,7 @@ function buildMenu() {
     { label: 'Revisión del día', click: () => openPanel('review') },
     { label: 'Resúmenes', click: () => openPanel('summary') },
     { label: 'Ajustes', click: () => openPanel('settings') },
+    { label: 'Acerca de', click: () => openPanel('about') },
     { type: 'separator' },
     { label: 'Mostrar/ocultar widget', click: () => widgetWin.isVisible() ? widgetWin.hide() : widgetWin.showInactive() },
     { label: 'Salir', click: () => { stopTimer(); app.exit(0); } }
@@ -417,6 +428,17 @@ function registerIpc() {
     data.save();
     return { user: `${u.firstname} ${u.lastname} (${u.login})`, activities: data.data.activities.length };
   });
+  handle('app:info', () => ({
+    version: app.getVersion(),
+    electron: process.versions.electron,
+    chrome: process.versions.chrome,
+    node: process.versions.node,
+    platform: `${process.platform} ${process.arch}`
+  }));
+  handle('app:open', key => {
+    if (!Object.hasOwn(LINKS, key)) throw new Error('Enlace no permitido');
+    return shell.openExternal(LINKS[key]);
+  });
   handle('settings:pickCa', async () => {
     const r = await dialog.showOpenDialog(panelWin, { properties: ['openFile'], filters: [{ name: 'Certificados', extensions: ['crt', 'pem', 'cer'] }] });
     return r.canceled ? null : r.filePaths[0];
@@ -426,6 +448,13 @@ function registerIpc() {
 // ---------- arranque ----------
 
 app.on('second-instance', () => openPanel('tasks'));
+
+// Las ventanas solo muestran los ficheros locales de la app: ni navegan a otra
+// página ni abren ventanas nuevas (los enlaces externos pasan por 'app:open').
+app.on('web-contents-created', (_e, wc) => {
+  wc.on('will-navigate', e => e.preventDefault());
+  wc.setWindowOpenHandler(() => ({ action: 'deny' }));
+});
 app.on('window-all-closed', e => e.preventDefault?.());
 
 app.whenReady().then(() => {

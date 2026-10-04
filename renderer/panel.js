@@ -24,7 +24,7 @@ let reviewRows = [], reviewSegs = [], reviewWritable = false;
 function showTab(tab) {
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   document.querySelectorAll('section').forEach(s => s.classList.toggle('active', s.id === 'tab-' + tab));
-  ({ tasks: loadRecent, review: loadReview, summary: loadSummary, settings: loadSettings })[tab]?.();
+  ({ tasks: loadRecent, review: loadReview, summary: loadSummary, settings: loadSettings, about: loadAbout })[tab]?.();
   if (tab === 'tasks') $('q').focus();
 }
 document.querySelectorAll('nav button').forEach(b => (b.onclick = () => showTab(b.dataset.tab)));
@@ -169,6 +169,17 @@ $('searchForm').onsubmit = e => {
 $('mineBtn').onclick = () => { setChip('mineBtn'); $('q').value = ''; search('', 'Mis tareas abiertas'); };
 $('recentBtn').onclick = loadRecent;
 $('projectFilter').onchange = () => $('searchForm').requestSubmit();
+
+// ---------- acerca de ----------
+async function loadAbout() {
+  const i = await tt.call('app:info');
+  $('aboutVersion').textContent = i.version;
+  $('aboutTech').textContent = `Electron ${i.electron} · Chromium ${i.chrome} · Node ${i.node} · ${i.platform}`;
+}
+document.querySelectorAll('[data-link]').forEach(el => (el.onclick = e => {
+  e.preventDefault();
+  tt.call('app:open', el.dataset.link).catch(err => toast(err.message, true));
+}));
 
 // ---------- tiempo manual (sin contador) ----------
 let manualIssue = null;
