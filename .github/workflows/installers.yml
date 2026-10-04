@@ -1,0 +1,45 @@
+# Builds the Timetracker Redmine installers on each OS (Linux .deb, Windows .exe, macOS .dmg).
+# Run it by hand from the Actions tab, or push a tag like "v0.1.0".
+name: installers
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: dist:linux
+            files: instaladores/*.deb
+          - os: windows-latest
+            target: dist:win
+            files: instaladores/*.exe
+          - os: macos-latest
+            target: dist:mac
+            files: instaladores/*.dmg
+    runs-on: ${{ matrix.os }}
+    env:
+      # Unsigned builds: no code-signing certificates are configured.
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run ${{ matrix.target }} -- --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: timetracker-${{ runner.os }}
+          path: ${{ matrix.files }}
+          if-no-files-found: error

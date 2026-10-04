@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'">
+<title>Timetracker Redmine</title>
+<link rel="stylesheet" href="panel.css">
+</head>
+<body>
+<aside class="sidebar">
+  <div class="brand">
+    <svg viewBox="0 0 24 24" class="brand-icon"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg>
+    <div>
+      <div class="brand-name">Timetracker</div>
+      <div class="brand-sub">Redmine X</div>
+    </div>
+  </div>
+  <nav>
+    <button data-tab="tasks"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>Tareas</button>
+    <button data-tab="review"><svg viewBox="0 0 24 24"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>Revisión</button>
+    <button data-tab="summary"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Resúmenes</button>
+    <button data-tab="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Ajustes</button>
+  </nav>
+  <div id="nowCard" class="now-card">
+    <div class="now-label"><span id="nowDot" class="dot"></span><span id="nowState">Parado</span></div>
+    <div id="nowTask" class="now-task">Sin tarea en curso</div>
+    <div id="nowTimer" class="now-timer">0:00:00</div>
+    <button id="nowBtn" class="btn btn-block">Reanudar</button>
+  </div>
+</aside>
+
+<main>
+  <!-- TAREAS -->
+  <section id="tab-tasks">
+    <header class="page-head">
+      <div>
+        <h1>Tareas</h1>
+        <p class="lead">Busca por número o por título y empieza a contar con un clic.</p>
+      </div>
+    </header>
+    <form id="searchForm" class="search">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input id="q" placeholder="#1234 o parte del título" autocomplete="off">
+      </div>
+      <select id="startActivity" title="Actividad con la que empezar"></select>
+      <button class="btn btn-primary">Buscar</button>
+    </form>
+    <div class="chips">
+      <button type="button" class="chip" id="mineBtn">Mis tareas abiertas</button>
+      <button type="button" class="chip" id="recentBtn">Recientes</button>
+      <select id="projectFilter" title="Proyecto en el que buscar"><option value="">★ Todos mis favoritos</option></select>
+    </div>
+    <p id="searchMsg" class="msg"></p>
+    <div class="card">
+      <div class="card-head"><h2 id="resultsTitle">Recientes</h2><span id="resultsCount" class="muted"></span></div>
+      <ul id="results" class="issue-list"></ul>
+    </div>
+  </section>
+
+  <!-- REVISIÓN -->
+  <section id="tab-review">
+    <header class="page-head">
+      <div>
+        <h1>Revisión del día</h1>
+        <p class="lead">Ajusta horas, actividad y comentario antes de imputar.</p>
+      </div>
+      <div class="date-nav">
+        <button class="btn btn-icon" data-shift="-1" data-for="reviewDate" title="Día anterior">‹</button>
+        <input type="date" id="reviewDate">
+        <button class="btn btn-icon" data-shift="1" data-for="reviewDate" title="Día siguiente">›</button>
+      </div>
+    </header>
+    <div class="stats">
+      <div class="stat"><span class="stat-label">Tiempo real</span><span id="statReal" class="stat-value">0:00</span></div>
+      <div class="stat"><span class="stat-label">A imputar</span><span id="statPending" class="stat-value">0,00 h</span></div>
+      <div class="stat"><span class="stat-label">Ya enviado</span><span id="statSent" class="stat-value">0,00 h</span></div>
+    </div>
+    <div id="reviewBanner" class="banner hidden"></div>
+    <div class="card">
+      <table class="table">
+        <thead><tr><th class="w-check"></th><th>Tarea</th><th>Actividad</th><th class="num">Real</th><th class="num">Horas</th><th>Comentario</th></tr></thead>
+        <tbody id="reviewRows"></tbody>
+      </table>
+    </div>
+    <div class="action-bar">
+      <span id="reviewMsg" class="msg"></span>
+      <button id="submitBtn" class="btn btn-primary">Imputar en Redmine</button>
+    </div>
+    <details id="segDetails" class="card details">
+      <summary>Tramos registrados <span id="segCount" class="muted"></span></summary>
+      <table class="table compact"><tbody id="segRows"></tbody></table>
+    </details>
+  </section>
+
+  <!-- RESÚMENES -->
+  <section id="tab-summary">
+    <header class="page-head">
+      <div>
+        <h1>Resúmenes</h1>
+        <p class="lead">Tiempo del día y de la semana (lunes a domingo).</p>
+      </div>
+      <div class="date-nav">
+        <button class="btn btn-icon" data-shift="-1" data-for="sumDate" title="Día anterior">‹</button>
+        <input type="date" id="sumDate">
+        <button class="btn btn-icon" data-shift="1" data-for="sumDate" title="Día siguiente">›</button>
+      </div>
+    </header>
+    <div class="stats">
+      <div class="stat"><span class="stat-label">Día</span><span id="sumDay" class="stat-value">0:00</span><span id="sumDayH" class="stat-sub"></span></div>
+      <div class="stat"><span class="stat-label">Semana</span><span id="sumWeek" class="stat-value">0:00</span><span id="sumWeekH" class="stat-sub"></span></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2>Día</h2></div>
+      <ul id="daily" class="bar-list"></ul>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2>Semana</h2></div>
+      <div class="table-wrap"><table class="table week"><thead id="weeklyHead"></thead><tbody id="weekly"></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- AJUSTES -->
+  <section id="tab-settings">
+    <header class="page-head">
+      <div>
+        <h1>Ajustes</h1>
+        <p class="lead">Conexión con Redmine y comportamiento del contador.</p>
+      </div>
+    </header>
+    <form id="settingsForm">
+      <div class="card">
+        <div class="card-head"><h2>Conexión</h2></div>
+        <div class="field">
+          <label for="f-url">URL de Redmine</label>
+          <input id="f-url" name="url">
+        </div>
+        <div class="field">
+          <label for="f-key">API key</label>
+          <div class="input-group"><input id="f-key" name="apiKey" type="password" autocomplete="new-password" spellcheck="false"><button type="button" id="clearKey" class="btn" hidden>Borrar</button></div>
+          <small id="keyStatus">Redmine → Mi cuenta → Clave de acceso a la API.</small>
+        </div>
+        <div class="field">
+          <label for="f-ca">Certificado de la CA interna <span class="opt">opcional</span></label>
+          <div class="input-group"><input id="f-ca" name="caPath" placeholder="/ruta/ca.crt"><button type="button" id="pickCa" class="btn">Elegir…</button></div>
+          <small>Solo si el certificado de Redmine lo firma una CA de la empresa.</small>
+        </div>
+        <div class="field-actions">
+          <button type="button" id="testBtn" class="btn">Probar conexión</button>
+          <span id="testMsg" class="msg"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>Registro</h2></div>
+        <div class="field-row">
+          <div class="field">
+            <label for="f-act">Actividad por defecto</label>
+            <select id="f-act" name="defaultActivityId"></select>
+          </div>
+          <div class="field">
+            <label for="f-idle">Pausa por inactividad</label>
+            <div class="input-group"><input id="f-idle" name="idleMinutes" type="number" min="1"><span class="addon">min</span></div>
+          </div>
+          <div class="field">
+            <label for="f-round">Redondeo a 0,25 h</label>
+            <select id="f-round" name="rounding"><option value="nearest">Al más cercano</option><option value="up">Siempre hacia arriba</option></select>
+          </div>
+        </div>
+        <label class="switch-row">
+          <span><b>Buscar solo tareas abiertas</b><small>Oculta las cerradas en el buscador.</small></span>
+          <input type="checkbox" name="onlyOpen" class="switch">
+        </label>
+      </div>
+
+      <div class="card card-warn">
+        <div class="card-head"><h2>Escritura en Redmine</h2></div>
+        <label class="switch-row">
+          <span><b>Permitir imputar horas</b><small>Desactivado, la app solo lee de Redmine. Activado, solo escribe cuando pulses «Imputar» y confirmes.</small></span>
+          <input type="checkbox" name="writeEnabled" class="switch">
+        </label>
+      </div>
+
+      <div class="action-bar">
+        <span id="settingsMsg" class="msg"></span>
+        <button class="btn btn-primary">Guardar cambios</button>
+      </div>
+    </form>
+  </section>
+</main>
+<div id="toast" class="toast"></div>
+<script src="panel.js"></script>
+</body>
+</html>
