@@ -74,6 +74,14 @@
       ],
       "category": "public.app-category.productivity",
       "artifactName": "Timetracker-Redmine-${version}-${arch}.${ext}"
+    },
+    "electronFuses": {
+      "runAsNode": false,
+      "enableNodeOptionsEnvironmentVariable": false,
+      "enableNodeCliInspectArguments": false,
+      "enableCookieEncryption": true,
+      "enableEmbeddedAsarIntegrityValidation": true,
+      "onlyLoadAppFromAsar": true
     }
   },
   "desktopName": "redmine-timetracker.desktop",

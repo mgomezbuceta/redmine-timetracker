@@ -75,3 +75,20 @@ test('cliente Redmine contra servidor simulado', async () => {
     await assert.rejects(c.createTimeEntry({ issueId: 42, date: '2026-10-03', hours: 1 }), /rechazado los datos: Activity cannot be blank/);
   } finally { srv.close(); }
 });
+
+test('solo HTTPS (salvo en local): la API key nunca viaja en claro', () => {
+  assert.throws(() => new RedmineClient({ url: 'http://redmine.example.com', apiKey: 'k' }), /https/);
+  assert.throws(() => new RedmineClient({ url: 'ftp://redmine.example.com', apiKey: 'k' }), /https/);
+  assert.ok(new RedmineClient({ url: 'https://redmine.example.com', apiKey: 'k' }));
+  assert.ok(new RedmineClient({ url: 'http://localhost:3000', apiKey: 'k' }));
+  assert.ok(new RedmineClient({ url: 'http://127.0.0.1:3000/redmine', apiKey: 'k' }));
+});
+
+test('respuestas demasiado grandes se cortan', async () => {
+  const srv = http.createServer((req, res) => { res.writeHead(200); res.end(Buffer.alloc(11 * 1024 * 1024, 32)); });
+  await new Promise(r => srv.listen(0, r));
+  try {
+    const c = new RedmineClient({ url: `http://127.0.0.1:${srv.address().port}`, apiKey: 'k' });
+    await assert.rejects(c.request('GET', '/x.json'), /demasiado grande/);
+  } finally { srv.close(); }
+});
