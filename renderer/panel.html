@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <title>Timetracker Redmine</title>
 <link rel="stylesheet" href="panel.css">
 </head>
@@ -20,6 +20,7 @@
     <button data-tab="review"><svg viewBox="0 0 24 24"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>Revisión</button>
     <button data-tab="summary"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Resúmenes</button>
     <button data-tab="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Ajustes</button>
+    <button data-tab="about"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>Acerca de</button>
   </nav>
   <div id="nowCard" class="now-card">
     <div class="now-label"><span id="nowDot" class="dot"></span><span id="nowState">Parado</span></div>
@@ -66,6 +67,7 @@
         <p class="lead">Ajusta horas, actividad y comentario antes de imputar.</p>
       </div>
       <div class="date-nav">
+        <button class="btn" id="manualBtn" title="Imputar horas sin usar el contador">＋ Tiempo manual</button>
         <button class="btn btn-icon" data-shift="-1" data-for="reviewDate" title="Día anterior">‹</button>
         <input type="date" id="reviewDate">
         <button class="btn btn-icon" data-shift="1" data-for="reviewDate" title="Día siguiente">›</button>
@@ -187,7 +189,62 @@
       </div>
     </form>
   </section>
+
+  <!-- ACERCA DE -->
+  <section id="tab-about">
+    <header class="page-head">
+      <div>
+        <h1>Acerca de</h1>
+        <p class="lead">Información de la aplicación.</p>
+      </div>
+    </header>
+    <div class="card about">
+      <img src="../assets/icon.png" alt="" class="about-icon">
+      <div class="about-body">
+        <h2>Timetracker Redmine</h2>
+        <p class="about-version">Versión <b id="aboutVersion">—</b></p>
+        <p>Cronometra tu trabajo por tarea de Redmine, revísalo al final del día e imputa las horas con un clic.</p>
+        <div class="about-links">
+          <button type="button" class="btn btn-primary" data-link="repo">Ver en GitHub</button>
+          <button type="button" class="btn" data-link="releases">Novedades y descargas</button>
+          <button type="button" class="btn" data-link="issues">Informar de un problema</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2>Autoría y licencia</h2></div>
+      <dl class="about-facts">
+        <dt>Autor</dt><dd><a href="#" data-link="author">Marcos Gómez Buceta</a></dd>
+        <dt>Licencia</dt><dd><a href="#" data-link="license">Apache 2.0</a></dd>
+        <dt>Código fuente</dt><dd><a href="#" data-link="repo">github.com/mgomezbuceta/redmine-timetracker</a></dd>
+        <dt>Plataforma</dt><dd id="aboutTech">—</dd>
+      </dl>
+    </div>
+  </section>
 </main>
+<dialog id="manualDlg" class="dlg">
+  <form id="manualForm">
+    <h2>Imputar horas sin contador</h2>
+    <p class="dlg-lead">Se añade como un tramo más y se imputa desde «Revisión del día», como el resto.</p>
+    <div class="field">
+      <label for="m-issue">Tarea</label>
+      <input id="m-issue" placeholder="Número de la tarea, p. ej. 1234" autocomplete="off">
+      <small id="m-issueInfo"></small>
+    </div>
+    <div class="field-row">
+      <div class="field"><label for="m-date">Fecha</label><input id="m-date" type="date" required></div>
+      <div class="field"><label for="m-start">Hora de inicio</label><input id="m-start" type="time" required></div>
+      <div class="field"><label for="m-hours">Horas</label><input id="m-hours" type="number" min="0.25" max="24" step="0.25" value="1" required></div>
+    </div>
+    <div class="field"><label for="m-act">Actividad</label><select id="m-act"></select></div>
+    <div class="field"><label for="m-comment">Comentario</label><input id="m-comment" maxlength="500" required placeholder="¿Qué has hecho? (obligatorio)"></div>
+    <p id="m-msg" class="msg"></p>
+    <div class="dlg-actions">
+      <button type="button" class="btn" id="m-cancel">Cancelar</button>
+      <button class="btn btn-primary">Añadir tiempo</button>
+    </div>
+  </form>
+</dialog>
 <div id="toast" class="toast"></div>
 <script src="panel.js"></script>
 </body>

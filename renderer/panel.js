@@ -24,7 +24,7 @@ let reviewRows = [], reviewSegs = [], reviewWritable = false;
 function showTab(tab) {
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   document.querySelectorAll('section').forEach(s => s.classList.toggle('active', s.id === 'tab-' + tab));
-  ({ tasks: loadRecent, review: loadReview, summary: loadSummary, settings: loadSettings })[tab]?.();
+  ({ tasks: loadRecent, review: loadReview, summary: loadSummary, settings: loadSettings, about: loadAbout })[tab]?.();
   if (tab === 'tasks') $('q').focus();
 }
 document.querySelectorAll('nav button').forEach(b => (b.onclick = () => showTab(b.dataset.tab)));
@@ -60,7 +60,7 @@ setInterval(renderNow, 1000);
 
 function activityOptions(selected, emptyLabel = '— actividad —') {
   return `<option value="">${emptyLabel}</option>` +
-    activities.map(a => `<option value="${a.id}" ${a.id === selected ? 'selected' : ''}>${esc(a.name)}</option>`).join('');
+    activities.map(a => `<option value="${Number(a.id)}" ${a.id === selected ? 'selected' : ''}>${esc(a.name)}</option>`).join('');
 }
 const actName = id => activities.find(a => a.id === id)?.name || '';
 
@@ -101,14 +101,18 @@ function renderIssues(list, title) {
   $('results').innerHTML = real.length ? sorted.map(([project, items]) => `
     <li class="group"><span>${esc(project || 'Sin proyecto')}</span><span class="group-count">${items.filter(i => !i.context).length}</span></li>` + treeOrder(items).map(({ i, depth, orphanOf }) => `
     <li class="depth-${depth} ${i.context ? 'context' : ''} ${i.id === curId ? 'current' : ''}" ${i.context ? 'title="Tarea padre (no está en el resultado)"' : ''}>
-      <span class="issue-id">${depth ? '<span class="tree-mark">└</span>' : ''}#${i.id}</span>
+      <span class="issue-id">${depth ? '<span class="tree-mark">└</span>' : ''}#${Number(i.id)}</span>
       <div class="issue-main">
         <div class="issue-title">${esc(i.subject)}</div>
         ${orphanOf ? `<div class="issue-meta">↳ subtarea de #${orphanOf}</div>` : ''}
       </div>
       ${i.status ? `<span class="badge">${esc(i.status)}</span>` : ''}
-      <button class="btn btn-sm ${i.id === curId ? '' : 'btn-primary'}" data-id="${i.id}" ${i.id === curId ? 'disabled' : ''}>${i.id === curId ? 'En curso' : '▶ Empezar'}</button>
+      <button class="btn btn-sm" data-manual="${Number(i.id)}" title="Imputar horas sin contador">＋ Horas</button>
+      <button class="btn btn-sm ${i.id === curId ? '' : 'btn-primary'}" data-id="${Number(i.id)}" ${i.id === curId ? 'disabled' : ''}>${i.id === curId ? 'En curso' : '▶ Empezar'}</button>
     </li>`).join('')).join('') : '<li class="empty">Nada que mostrar.</li>';
+  $('results').querySelectorAll('button[data-manual]').forEach(b => {
+    b.onclick = () => openManual(list.find(i => String(i.id) === b.dataset.manual));
+  });
   $('results').querySelectorAll('button[data-id]').forEach(b => {
     b.onclick = async () => {
       const issue = list.find(i => String(i.id) === b.dataset.id);
@@ -134,7 +138,7 @@ async function loadProjects() {
     const projects = await tt.call('projects:list');
     const sel = $('projectFilter');
     const current = sel.value;
-    const opts = list => list.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
+    const opts = list => list.map(p => `<option value="${Number(p.id)}">${esc(p.name)}</option>`).join('');
     const fav = projects.filter(p => p.bookmarked), member = projects.filter(p => !p.bookmarked);
     sel.innerHTML = '<option value="">★ Todos mis favoritos</option>' +
       (fav.length ? `<optgroup label="Favoritos">${opts(fav)}</optgroup>` : '') +
@@ -166,6 +170,71 @@ $('mineBtn').onclick = () => { setChip('mineBtn'); $('q').value = ''; search('',
 $('recentBtn').onclick = loadRecent;
 $('projectFilter').onchange = () => $('searchForm').requestSubmit();
 
+// ---------- acerca de ----------
+async function loadAbout() {
+  const i = await tt.call('app:info');
+  $('aboutVersion').textContent = i.version;
+  $('aboutTech').textContent = `Electron ${i.electron} · Chromium ${i.chrome} · Node ${i.node} · ${i.platform}`;
+}
+document.querySelectorAll('[data-link]').forEach(el => (el.onclick = e => {
+  e.preventDefault();
+  tt.call('app:open', el.dataset.link).catch(err => toast(err.message, true));
+}));
+
+// ---------- tiempo manual (sin contador) ----------
+let manualIssue = null;
+
+async function openManual(issue = null, date = today()) {
+  manualIssue = issue;
+  const inp = $('m-issue');
+  inp.value = issue ? `#${issue.id} ${issue.subject}` : '';
+  inp.readOnly = Boolean(issue);
+  $('m-issueInfo').textContent = issue ? issue.project : 'Escribe el número y pulsa Tab para buscarla.';
+  $('m-date').value = date;
+  $('m-start').value = await tt.call('segments:suggestStart', date);
+  $('m-hours').value = 1;
+  const s = await tt.call('settings:get');
+  $('m-act').innerHTML = activityOptions(state?.current?.activityId ?? s.defaultActivityId);
+  $('m-comment').value = '';
+  msg($('m-msg'), '');
+  $('manualDlg').showModal();
+  (issue ? $('m-comment') : inp).focus();
+}
+
+$('m-issue').onchange = async () => {
+  if ($('m-issue').readOnly) return;
+  manualIssue = null;
+  const n = $('m-issue').value.replace(/\D/g, '');
+  if (!n) return;
+  $('m-issueInfo').textContent = 'Buscando…';
+  try {
+    const [issue] = await tt.call('issues:search', '#' + n);
+    if (!issue) throw new Error('No encontrada, o su proyecto está cerrado.');
+    manualIssue = issue;
+    $('m-issue').value = `#${issue.id} ${issue.subject}`;
+    $('m-issueInfo').textContent = issue.project;
+  } catch (err) { $('m-issueInfo').textContent = err.message; }
+};
+$('m-date').onchange = async () => { $('m-start').value = await tt.call('segments:suggestStart', $('m-date').value); };
+$('m-cancel').onclick = () => $('manualDlg').close();
+$('manualBtn').onclick = () => openManual(null, $('reviewDate').value);
+
+$('manualForm').onsubmit = async e => {
+  e.preventDefault();
+  if (!manualIssue) return msg($('m-msg'), 'Elige una tarea válida.', 'err');
+  const hours = Number($('m-hours').value);
+  try {
+    await tt.call('segments:addManual', {
+      issue: { id: manualIssue.id, subject: manualIssue.subject, project: manualIssue.project },
+      activityId: Number($('m-act').value) || null,
+      date: $('m-date').value, start: $('m-start').value, hours, comment: $('m-comment').value
+    });
+    $('manualDlg').close();
+    toast(`Añadidas ${hrs(hours)} a #${manualIssue.id}: pendientes en Revisión del día`);
+    if ($('tab-review').classList.contains('active')) loadReview();
+  } catch (err) { msg($('m-msg'), err.message, 'err'); }
+};
+
 // ---------- revisión ----------
 $('reviewDate').value = today();
 $('reviewDate').onchange = loadReview;
@@ -180,7 +249,7 @@ async function loadReview() {
     <tr class="${row.submitted ? 'sent' : ''}" data-i="${i}">
       <td><input type="checkbox" class="inc" ${row.include ? 'checked' : ''} ${dis}></td>
       <td>
-        <div class="issue-title"><span class="issue-id">#${row.issueId}</span> ${esc(row.subject)}</div>
+        <div class="issue-title"><span class="issue-id">#${Number(row.issueId)}</span> ${esc(row.subject)}</div>
         <div class="issue-meta">${esc(row.project)}${row.submitted ? ` · <span class="badge sent-badge">✓ enviada${row.submitted.timeEntryId ? ' #' + row.submitted.timeEntryId : ''}</span>` : ''}</div>
       </td>
       <td><select class="act" ${dis}>${activityOptions(row.activityId)}</select></td>
@@ -202,8 +271,8 @@ async function loadReview() {
   const t = ts => new Date(ts).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
   $('segRows').innerHTML = r.segments.length ? r.segments.map(s => `
     <tr>
-      <td class="muted">${t(s.start)} – ${t(s.end)}</td>
-      <td><span class="issue-id">#${s.issueId}</span> ${esc(s.subject)}</td>
+      <td class="muted">${t(s.start)} – ${t(s.end)}${s.manual ? ' <span class="badge">manual</span>' : ''}</td>
+      <td><span class="issue-id">#${Number(s.issueId)}</span> ${esc(s.subject)}</td>
       <td class="muted">${esc(actName(s.activityId))}</td>
       <td class="num">${hm((s.end - s.start) / 1000)}</td>
       <td class="seg-comment-cell"><input class="seg-comment" data-id="${esc(s.id)}" maxlength="500" placeholder="¿Qué has hecho? (obligatorio)" value="${esc(s.comment || '')}" ${segSent(s) ? 'disabled' : ''}></td>
@@ -299,7 +368,7 @@ async function loadSummary() {
   $('daily').innerHTML = daily.issues.length ? daily.issues.map(i => `
     <li>
       <div class="bar-label">
-        <div class="issue-title"><span class="issue-id">#${i.issueId}</span> ${esc(i.subject)}</div>
+        <div class="issue-title"><span class="issue-id">#${Number(i.issueId)}</span> ${esc(i.subject)}</div>
         <div class="bar-track"><div class="bar-fill" data-w="${(i.seconds / max * 100).toFixed(1)}"></div></div>
       </div>
       <span class="num">${hm(i.seconds)}</span>
@@ -316,7 +385,7 @@ async function loadSummary() {
   };
   $('weeklyHead').innerHTML = `<tr><th>Tarea</th>${weekly.days.map((d, i) => `<th class="day ${d === td ? 'today-col' : ''}">${dayNames[i]} ${d.slice(8)}</th>`).join('')}<th class="num">Total</th></tr>`;
   $('weekly').innerHTML = weekly.issues.length ? weekly.issues.map(i => `
-    <tr><td><div class="issue-title"><span class="issue-id">#${i.issueId}</span> ${esc(i.subject)}</div></td>
+    <tr><td><div class="issue-title"><span class="issue-id">#${Number(i.issueId)}</span> ${esc(i.subject)}</div></td>
     ${weekly.days.map(d => cell(i.perDay[d])).join('')}
     <td class="num"><b>${hm(i.seconds)}</b><div class="muted">${hrs(i.hours)}</div></td></tr>`).join('') +
     `<tr class="total"><td>Total</td>${weekly.days.map(d => `<td class="cell">${weekly.totals[d] ? hm(weekly.totals[d]) : ''}</td>`).join('')}<td class="num">${hm(weekly.seconds)}</td></tr>`
