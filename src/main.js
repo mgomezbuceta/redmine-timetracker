@@ -332,6 +332,17 @@ function registerIpc() {
     data.data.segments = data.data.segments.filter(s => s.id !== id);
     data.save(); pushState();
   });
+  // Tiempo añadido a mano, sin contador. Pasa por la revisión como cualquier otro tramo.
+  handle('segments:addManual', entry => {
+    const busy = [...data.data.segments];
+    if (data.data.current) busy.push({ start: data.data.current.start, end: Date.now() }); // contador en marcha
+    const seg = core.manualSegment(entry, busy);
+    data.data.segments.push({ id: `${seg.start}-${seg.issueId}-m`, ...seg });
+    rememberRecent({ id: seg.issueId, subject: seg.subject, project: seg.project });
+    data.save(); pushState();
+    return seg;
+  });
+  handle('segments:suggestStart', date => core.suggestStart(data.data.segments, date));
   handle('segments:setComment', (id, comment) => {
     const s = data.data.segments.find(x => x.id === id);
     if (!s) throw new Error('Tramo no encontrado');

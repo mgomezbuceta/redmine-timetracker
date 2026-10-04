@@ -107,8 +107,12 @@ function renderIssues(list, title) {
         ${orphanOf ? `<div class="issue-meta">↳ subtarea de #${orphanOf}</div>` : ''}
       </div>
       ${i.status ? `<span class="badge">${esc(i.status)}</span>` : ''}
+      <button class="btn btn-sm" data-manual="${Number(i.id)}" title="Imputar horas sin contador">＋ Horas</button>
       <button class="btn btn-sm ${i.id === curId ? '' : 'btn-primary'}" data-id="${i.id}" ${i.id === curId ? 'disabled' : ''}>${i.id === curId ? 'En curso' : '▶ Empezar'}</button>
     </li>`).join('')).join('') : '<li class="empty">Nada que mostrar.</li>';
+  $('results').querySelectorAll('button[data-manual]').forEach(b => {
+    b.onclick = () => openManual(list.find(i => String(i.id) === b.dataset.manual));
+  });
   $('results').querySelectorAll('button[data-id]').forEach(b => {
     b.onclick = async () => {
       const issue = list.find(i => String(i.id) === b.dataset.id);
@@ -166,6 +170,60 @@ $('mineBtn').onclick = () => { setChip('mineBtn'); $('q').value = ''; search('',
 $('recentBtn').onclick = loadRecent;
 $('projectFilter').onchange = () => $('searchForm').requestSubmit();
 
+// ---------- tiempo manual (sin contador) ----------
+let manualIssue = null;
+
+async function openManual(issue = null, date = today()) {
+  manualIssue = issue;
+  const inp = $('m-issue');
+  inp.value = issue ? `#${issue.id} ${issue.subject}` : '';
+  inp.readOnly = Boolean(issue);
+  $('m-issueInfo').textContent = issue ? issue.project : 'Escribe el número y pulsa Tab para buscarla.';
+  $('m-date').value = date;
+  $('m-start').value = await tt.call('segments:suggestStart', date);
+  $('m-hours').value = 1;
+  const s = await tt.call('settings:get');
+  $('m-act').innerHTML = activityOptions(state?.current?.activityId ?? s.defaultActivityId);
+  $('m-comment').value = '';
+  msg($('m-msg'), '');
+  $('manualDlg').showModal();
+  (issue ? $('m-comment') : inp).focus();
+}
+
+$('m-issue').onchange = async () => {
+  if ($('m-issue').readOnly) return;
+  manualIssue = null;
+  const n = $('m-issue').value.replace(/\D/g, '');
+  if (!n) return;
+  $('m-issueInfo').textContent = 'Buscando…';
+  try {
+    const [issue] = await tt.call('issues:search', '#' + n);
+    if (!issue) throw new Error('No encontrada, o su proyecto está cerrado.');
+    manualIssue = issue;
+    $('m-issue').value = `#${issue.id} ${issue.subject}`;
+    $('m-issueInfo').textContent = issue.project;
+  } catch (err) { $('m-issueInfo').textContent = err.message; }
+};
+$('m-date').onchange = async () => { $('m-start').value = await tt.call('segments:suggestStart', $('m-date').value); };
+$('m-cancel').onclick = () => $('manualDlg').close();
+$('manualBtn').onclick = () => openManual(null, $('reviewDate').value);
+
+$('manualForm').onsubmit = async e => {
+  e.preventDefault();
+  if (!manualIssue) return msg($('m-msg'), 'Elige una tarea válida.', 'err');
+  const hours = Number($('m-hours').value);
+  try {
+    await tt.call('segments:addManual', {
+      issue: { id: manualIssue.id, subject: manualIssue.subject, project: manualIssue.project },
+      activityId: Number($('m-act').value) || null,
+      date: $('m-date').value, start: $('m-start').value, hours, comment: $('m-comment').value
+    });
+    $('manualDlg').close();
+    toast(`Añadidas ${hrs(hours)} a #${manualIssue.id}: pendientes en Revisión del día`);
+    if ($('tab-review').classList.contains('active')) loadReview();
+  } catch (err) { msg($('m-msg'), err.message, 'err'); }
+};
+
 // ---------- revisión ----------
 $('reviewDate').value = today();
 $('reviewDate').onchange = loadReview;
@@ -202,7 +260,7 @@ async function loadReview() {
   const t = ts => new Date(ts).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
   $('segRows').innerHTML = r.segments.length ? r.segments.map(s => `
     <tr>
-      <td class="muted">${t(s.start)} – ${t(s.end)}</td>
+      <td class="muted">${t(s.start)} – ${t(s.end)}${s.manual ? ' <span class="badge">manual</span>' : ''}</td>
       <td><span class="issue-id">#${s.issueId}</span> ${esc(s.subject)}</td>
       <td class="muted">${esc(actName(s.activityId))}</td>
       <td class="num">${hm((s.end - s.start) / 1000)}</td>
