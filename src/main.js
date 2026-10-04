@@ -1,5 +1,5 @@
 const {
-  app, BrowserWindow, Tray, Menu, ipcMain, dialog, powerMonitor, safeStorage, nativeImage, screen, nativeTheme, shell
+  app, BrowserWindow, Tray, Menu, ipcMain, dialog, powerMonitor, safeStorage, nativeImage, screen, nativeTheme, shell, session
 } = require('electron');
 const path = require('path');
 const { JsonFile } = require('./store');
@@ -196,7 +196,10 @@ function pushState() {
   updateTray();
 }
 
-const webPrefs = { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true };
+const webPrefs = {
+  preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true,
+  devTools: !app.isPackaged // sin herramientas de desarrollador en la versión instalada
+};
 
 function createWidget() {
   const area = screen.getPrimaryDisplay().workArea;
@@ -367,15 +370,11 @@ function registerIpc() {
   });
   handle('review:submit', async (date, rows) => {
     if (!settings.data.writeEnabled) throw new Error('La escritura en Redmine está desactivada en Ajustes.');
-    rows = rows.filter(r => r.include && r.hours > 0);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date))) throw new Error('Fecha no válida.');
+    // Tarea y comentarios salen de los tramos guardados; horas y actividad se validan.
+    rows = core.prepareSubmission(Array.isArray(rows) ? rows : [], core.buildReview(data.data.segments, date),
+      data.data.activities.map(a => a.id));
     if (!rows.length) throw new Error('No hay filas marcadas para enviar.');
-    // Los comentarios salen de los tramos guardados, no de lo que mande la ventana.
-    const truth = new Map(core.buildReview(data.data.segments, date).map(g => [g.key, g]));
-    const uncommented = rows.filter(r => !truth.get(r.key) || truth.get(r.key).uncommented > 0);
-    if (uncommented.length) throw new Error(`Falta el comentario de algún tramo en: ${uncommented.map(r => '#' + r.issueId).join(', ')}. Complétalos en "Tramos registrados".`);
-    rows = rows.map(r => ({ ...r, comments: truth.get(r.key).comments }));
-    const missing = rows.filter(r => !r.activityId);
-    if (missing.length) throw new Error(`Falta la actividad en: ${missing.map(r => '#' + r.issueId).join(', ')}`);
     const total = rows.reduce((a, r) => a + r.hours, 0);
     const { response } = await dialog.showMessageBox(panelWin, {
       type: 'question', buttons: ['Cancelar', 'Enviar'], defaultId: 0, cancelId: 0,
@@ -410,6 +409,7 @@ function registerIpc() {
     return { ...rest, ...keys.status() };
   });
   handle('settings:save', s => {
+    if (s.url) RedmineClient.checkUrl(String(s.url)); // solo https
     if (s.apiKey) keys.set(s.apiKey); // valida y cifra antes de tocar nada más
     const allowed = ['url', 'caPath', 'defaultActivityId', 'idleMinutes', 'rounding', 'onlyOpen', 'writeEnabled'];
     for (const k of allowed) if (k in s) settings.data[k] = s[k];
@@ -458,6 +458,9 @@ app.on('web-contents-created', (_e, wc) => {
 app.on('window-all-closed', e => e.preventDefault?.());
 
 app.whenReady().then(() => {
+  // La app no usa cámara, micrófono, notificaciones ni ningún otro permiso del navegador.
+  session.defaultSession.setPermissionRequestHandler((_wc, _perm, cb) => cb(false));
+  session.defaultSession.setPermissionCheckHandler(() => false);
   loadStores();
   recoverFromCrash();
   registerIpc();

@@ -115,7 +115,7 @@ npm start
 
 La primera vez se abre la pestaña **Ajustes**:
 
-1. **URL de Redmine**: la dirección de tu servidor, por ejemplo `https://redmine.tuempresa.com`.
+1. **URL de Redmine**: la dirección de tu servidor, por ejemplo `https://redmine.tuempresa.com`. Tiene que ser `https://`: la app no envía la API key por una conexión sin cifrar.
 2. **API key**: en Redmine, *Mi cuenta → Clave de acceso a la API*. Son 40 caracteres hexadecimales.
 3. **Certificado de la CA interna** *(opcional)*: solo si el certificado HTTPS de tu Redmine lo firma una CA de tu empresa. Elige su `.crt`, `.pem` o `.cer` (PEM o DER). Si al probar la conexión ves *self signed certificate in certificate chain*, es esto lo que falta.
 4. Pulsa **Probar conexión**: verás tu usuario y se cargarán las actividades.
@@ -132,6 +132,22 @@ La primera vez se abre la pestaña **Ajustes**:
 - Nunca se escribe en claro en disco. Si no hay un llavero seguro disponible, la app se niega a guardarla en lugar de guardarla sin cifrar.
 - La ventana de la app nunca recibe la clave: solo sabe si hay una guardada.
 - Puedes borrarla en cualquier momento desde *Ajustes*.
+
+### 🛡️ Otras medidas de seguridad
+
+- Ventanas aisladas (sandbox, aislamiento de contexto, sin Node.js) con una política de contenido estricta. No pueden navegar a otras páginas ni abrir ventanas, y solo pueden llamar a una lista cerrada de funciones de la app.
+- Conexión con Redmine solo por HTTPS y con el certificado siempre verificado.
+- Antes de imputar, la tarea y los comentarios se reconstruyen desde los tramos guardados, y las horas y la actividad se validan.
+- Ejecutable endurecido con los *fuses* de Electron: no se puede usar como intérprete de Node.js y solo carga el código empaquetado de la app.
+- Sin dependencias en tiempo de ejecución, y Dependabot vigila las de desarrollo y las de la CI.
+
+### ✅ Verificar que un instalador es auténtico
+
+Desde la versión 0.2.0, cada instalador de una release lleva una atestación de procedencia firmada por GitHub Actions. Para comprobar que lo ha generado este repositorio:
+
+```bash
+gh attestation verify redmine-timetracker_<versión>_amd64.deb -R mgomezbuceta/redmine-timetracker
+```
 
 ## 🚀 Uso diario
 

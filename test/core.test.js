@@ -92,3 +92,14 @@ test('hora sugerida para un tramo manual: al final del último tramo del día', 
   const segs = [{ start: at('2026-10-01', 9), end: at('2026-10-01', 10, 45) }, { start: at('2026-10-02', 8), end: at('2026-10-02', 18) }];
   assert.equal(core.suggestStart(segs, '2026-10-01'), '10:45');
 });
+
+test('envío a Redmine: se reconstruye desde los tramos guardados y se validan horas y actividad', () => {
+  const truth = [{ key: '10|9', issueId: 10, activityId: 9, comments: 'Análisis', uncommented: 0 }];
+  const ok = core.prepareSubmission([{ key: '10|9', issueId: 999, include: true, hours: 1.5, activityId: 8 }], truth, [8, 9]);
+  assert.deepEqual(ok, [{ key: '10|9', issueId: 10, hours: 1.5, activityId: 8, comments: 'Análisis' }]);
+  assert.deepEqual(core.prepareSubmission([{ key: '10|9', include: false, hours: 1, activityId: 9 }], truth, [9]), []);
+  assert.throws(() => core.prepareSubmission([{ key: 'x|1', include: true, hours: 1, activityId: 9 }], truth, [9]), /no existe/);
+  assert.throws(() => core.prepareSubmission([{ key: '10|9', include: true, hours: 30, activityId: 9 }], truth, [9]), /horas/);
+  assert.throws(() => core.prepareSubmission([{ key: '10|9', include: true, hours: 1, activityId: 77 }], truth, [9]), /actividad/);
+  assert.throws(() => core.prepareSubmission([{ key: '10|9', include: true, hours: 1, activityId: 9 }], [{ ...truth[0], uncommented: 1 }], [9]), /comentario/);
+});
