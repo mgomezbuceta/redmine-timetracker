@@ -39,6 +39,7 @@ Y lo hace sin riesgos: **la app no escribe nada en Redmine hasta que tú lo perm
 | 📊 **Resúmenes** | Diario y semanal (de lunes a domingo), con barras y mapa de calor. |
 | 🔐 **API key como una contraseña** | Cifrada con el almacén seguro del sistema y nunca en claro en disco. |
 | 🏢 **Redmine corporativo** | Admite la CA interna de tu empresa (PEM o DER) sin desactivar jamás la verificación TLS. |
+| 🔔 **Aviso de versión nueva** | Te avisa cuando hay una versión más reciente en GitHub, con un botón para descargarla. Se puede desactivar. |
 | 🌗 **Tema claro y oscuro** | Sigue automáticamente el tema del sistema. |
 
 <div align="center">
@@ -84,6 +85,8 @@ sudo apt install ./redmine-timetracker_0.1.0_amd64.deb
 ```
 
 Después búscala en el menú de aplicaciones como **Timetracker Redmine**. Para actualizar, instala el `.deb` nuevo encima: tus datos se conservan.
+
+> **Actualizaciones:** la app consulta GitHub al arrancar y cada 6 horas y, si hay una versión nueva, te avisa con un botón para descargarla (en el panel y en el menú de la bandeja). Solo lee el número de la última versión publicada; no envía ningún dato tuyo. Se desactiva en *Ajustes → Avisar de versiones nuevas*.
 
 ### 🪟 Windows
 

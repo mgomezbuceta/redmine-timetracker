@@ -103,3 +103,13 @@ test('envío a Redmine: se reconstruye desde los tramos guardados y se validan h
   assert.throws(() => core.prepareSubmission([{ key: '10|9', include: true, hours: 1, activityId: 77 }], truth, [9]), /actividad/);
   assert.throws(() => core.prepareSubmission([{ key: '10|9', include: true, hours: 1, activityId: 9 }], [{ ...truth[0], uncommented: 1 }], [9]), /comentario/);
 });
+
+test('comparación de versiones para el aviso de actualización', () => {
+  assert.equal(core.isNewer('v0.3.0', '0.2.0'), true);
+  assert.equal(core.isNewer('0.10.0', '0.9.9'), true);
+  assert.equal(core.isNewer('v1.0.0', '0.99.1'), true);
+  assert.equal(core.isNewer('v0.2.0', '0.2.0'), false);
+  assert.equal(core.isNewer('0.1.9', '0.2.0'), false);
+  assert.equal(core.isNewer('basura', '0.2.0'), false);
+  assert.equal(core.isNewer('v0.3.0-beta.1', '0.2.0'), false); // las versiones previas no se anuncian
+});

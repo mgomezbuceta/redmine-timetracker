@@ -265,3 +265,9 @@ input[type=checkbox]:not(.switch) { width: 18px; height: 18px; min-height: 0; ac
 .about-facts dd { margin: 0; }
 .about-facts a { color: var(--accent); text-decoration: none; }
 .about-facts a:hover { text-decoration: underline; }
+
+/* ---------- aviso de versión nueva ---------- */
+.update-banner { display: flex; align-items: center; gap: 10px; max-width: 916px; margin: 20px auto -8px; padding: 10px 14px; border: 1px solid var(--accent); border-radius: var(--radius); background: var(--surface); }
+.update-banner span { flex: 1; }
+.update-banner.hidden { display: none; }
+.about-version a { color: var(--accent); text-decoration: none; }
