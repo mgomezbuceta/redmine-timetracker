@@ -1,5 +1,6 @@
 # Builds the Timetracker Redmine installers on each OS (Linux .deb, Windows .exe, macOS .dmg).
-# Run it by hand from the Actions tab, or push a tag like "v0.1.0".
+# Run it by hand from the Actions tab (artifacts only), or push a tag like "v0.1.0":
+# then the installers and their SHA256SUMS are also attached to that GitHub release.
 name: installers
 
 on:
@@ -43,3 +44,28 @@ jobs:
           name: timetracker-${{ runner.os }}
           path: ${{ matrix.files }}
           if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release
+          merge-multiple: true
+      - name: Checksums
+        working-directory: release
+        run: sha256sum * > SHA256SUMS.txt
+      - name: Create or update the release
+        working-directory: release
+        run: |
+          gh release view "$TAG" > /dev/null 2>&1 ||
+            gh release create "$TAG" --verify-tag --title "Timetracker Redmine ${TAG#v}" --generate-notes
+          gh release upload "$TAG" * --clobber
