@@ -31,6 +31,11 @@
 </aside>
 
 <main>
+  <div id="updateBanner" class="update-banner hidden">
+    <span>⬆ Hay una versión nueva disponible: <b id="updateVersion"></b></span>
+    <button type="button" class="btn btn-sm btn-primary" data-link="releases">Descargar</button>
+    <button type="button" class="btn btn-sm" id="updateDismiss">Ahora no</button>
+  </div>
   <!-- TAREAS -->
   <section id="tab-tasks">
     <header class="page-head">
@@ -173,6 +178,10 @@
           <span><b>Buscar solo tareas abiertas</b><small>Oculta las cerradas en el buscador.</small></span>
           <input type="checkbox" name="onlyOpen" class="switch">
         </label>
+        <label class="switch-row">
+          <span><b>Avisar de versiones nuevas</b><small>Consulta en GitHub si hay una versión más reciente. No envía ningún dato tuyo.</small></span>
+          <input type="checkbox" name="checkUpdates" class="switch">
+        </label>
       </div>
 
       <div class="card card-warn">
@@ -202,7 +211,7 @@
       <img src="../assets/icon.png" alt="" class="about-icon">
       <div class="about-body">
         <h2>Timetracker Redmine</h2>
-        <p class="about-version">Versión <b id="aboutVersion">—</b></p>
+        <p class="about-version">Versión <b id="aboutVersion">—</b> · <a href="#" id="checkUpdate">Buscar actualizaciones</a> <span id="updateStatus"></span></p>
         <p>Cronometra tu trabajo por tarea de Redmine, revísalo al final del día e imputa las horas con un clic.</p>
         <div class="about-links">
           <button type="button" class="btn btn-primary" data-link="repo">Ver en GitHub</button>
