@@ -34,6 +34,7 @@ Y lo hace sin riesgos: **la app no escribe nada en Redmine hasta que tú lo perm
 | 🌳 **Árbol de tareas** | Resultados agrupados por proyecto y con la jerarquía padre → subtareas, como en Redmine. |
 | 🚫 **Sin ruido** | Las tareas de proyectos cerrados o archivados no aparecen nunca. |
 | 💤 **Detección de inactividad** | Si te ausentas o suspendes el equipo, para el reloj donde empezó la inactividad y te pregunta: *Sumar*, *Descartar* o *Parar*. |
+| ✍️ **Tiempo manual** | ¿Se te olvidó encender el contador? Elige la tarea, la fecha, la hora de inicio y las horas, y añádelo a mano. |
 | 📝 **Revisión del día** | Agrupada por tarea y actividad, con redondeo a 0,25 h. Cada tramo lleva **su comentario obligatorio**, y con ellos se forma el comentario de la entrada de tiempo. |
 | 📊 **Resúmenes** | Diario y semanal (de lunes a domingo), con barras y mapa de calor. |
 | 🔐 **API key como una contraseña** | Cifrada con el almacén seguro del sistema y nunca en claro en disco. |
@@ -140,6 +141,7 @@ La primera vez se abre la pestaña **Ajustes**:
 | Parar o reanudar | Botón ■ / ▶ del widget, el panel o el menú del icono de la bandeja. |
 | Buscar en un proyecto concreto | Desplegable de proyecto bajo el buscador (favoritos primero, luego los proyectos en los que participas). |
 | Volver a una tarea reciente | Chip **Recientes** en el buscador. |
+| Imputar sin el contador | **＋ Horas** en cualquier tarea del buscador, o **＋ Tiempo manual** en *Revisión del día*: fecha, hora de inicio, horas, actividad y comentario. Se revisa e imputa como el resto. |
 | Ausentarme | No hagas nada: al volver, la app te pregunta qué hacer con ese tiempo. |
 | Cerrar el día | Menú → **Revisión del día**: comenta cada tramo, ajusta y pulsa **Imputar en Redmine**. |
 | Corregir un error | En *Tramos registrados* puedes borrar un tramo equivocado antes de imputar. |

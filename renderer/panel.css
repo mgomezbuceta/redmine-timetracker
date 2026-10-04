@@ -243,3 +243,12 @@ input[type=checkbox]:not(.switch) { width: 18px; height: 18px; min-height: 0; ac
 .seg-comment-cell { width: 45%; }
 .seg-comment { width: 100%; }
 .seg-comment.missing { border-color: var(--danger, #e5534b); }
+
+/* ---------- diálogo de tiempo manual ---------- */
+.dlg { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); padding: 0; width: min(560px, 92vw); box-shadow: var(--shadow); }
+.dlg::backdrop { background: rgba(0, 0, 0, .45); }
+.dlg form { padding: 20px 6px 18px; }
+.dlg h2 { margin: 0 18px 4px; font-size: 18px; }
+.dlg-lead { margin: 0 18px 4px; color: var(--text-3); font-size: 13px; }
+.dlg .msg { margin: 10px 18px 0; }
+.dlg-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 18px 0; }
