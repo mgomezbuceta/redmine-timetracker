@@ -1,6 +1,6 @@
 {
   "name": "redmine-timetracker",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Timetracker local con widget flotante y envío de horas a Redmine bajo revisión",
   "main": "src/main.js",
   "private": true,
