@@ -60,7 +60,7 @@ setInterval(renderNow, 1000);
 
 function activityOptions(selected, emptyLabel = '— actividad —') {
   return `<option value="">${emptyLabel}</option>` +
-    activities.map(a => `<option value="${a.id}" ${a.id === selected ? 'selected' : ''}>${esc(a.name)}</option>`).join('');
+    activities.map(a => `<option value="${Number(a.id)}" ${a.id === selected ? 'selected' : ''}>${esc(a.name)}</option>`).join('');
 }
 const actName = id => activities.find(a => a.id === id)?.name || '';
 
@@ -101,14 +101,14 @@ function renderIssues(list, title) {
   $('results').innerHTML = real.length ? sorted.map(([project, items]) => `
     <li class="group"><span>${esc(project || 'Sin proyecto')}</span><span class="group-count">${items.filter(i => !i.context).length}</span></li>` + treeOrder(items).map(({ i, depth, orphanOf }) => `
     <li class="depth-${depth} ${i.context ? 'context' : ''} ${i.id === curId ? 'current' : ''}" ${i.context ? 'title="Tarea padre (no está en el resultado)"' : ''}>
-      <span class="issue-id">${depth ? '<span class="tree-mark">└</span>' : ''}#${i.id}</span>
+      <span class="issue-id">${depth ? '<span class="tree-mark">└</span>' : ''}#${Number(i.id)}</span>
       <div class="issue-main">
         <div class="issue-title">${esc(i.subject)}</div>
         ${orphanOf ? `<div class="issue-meta">↳ subtarea de #${orphanOf}</div>` : ''}
       </div>
       ${i.status ? `<span class="badge">${esc(i.status)}</span>` : ''}
       <button class="btn btn-sm" data-manual="${Number(i.id)}" title="Imputar horas sin contador">＋ Horas</button>
-      <button class="btn btn-sm ${i.id === curId ? '' : 'btn-primary'}" data-id="${i.id}" ${i.id === curId ? 'disabled' : ''}>${i.id === curId ? 'En curso' : '▶ Empezar'}</button>
+      <button class="btn btn-sm ${i.id === curId ? '' : 'btn-primary'}" data-id="${Number(i.id)}" ${i.id === curId ? 'disabled' : ''}>${i.id === curId ? 'En curso' : '▶ Empezar'}</button>
     </li>`).join('')).join('') : '<li class="empty">Nada que mostrar.</li>';
   $('results').querySelectorAll('button[data-manual]').forEach(b => {
     b.onclick = () => openManual(list.find(i => String(i.id) === b.dataset.manual));
@@ -138,7 +138,7 @@ async function loadProjects() {
     const projects = await tt.call('projects:list');
     const sel = $('projectFilter');
     const current = sel.value;
-    const opts = list => list.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
+    const opts = list => list.map(p => `<option value="${Number(p.id)}">${esc(p.name)}</option>`).join('');
     const fav = projects.filter(p => p.bookmarked), member = projects.filter(p => !p.bookmarked);
     sel.innerHTML = '<option value="">★ Todos mis favoritos</option>' +
       (fav.length ? `<optgroup label="Favoritos">${opts(fav)}</optgroup>` : '') +
@@ -249,7 +249,7 @@ async function loadReview() {
     <tr class="${row.submitted ? 'sent' : ''}" data-i="${i}">
       <td><input type="checkbox" class="inc" ${row.include ? 'checked' : ''} ${dis}></td>
       <td>
-        <div class="issue-title"><span class="issue-id">#${row.issueId}</span> ${esc(row.subject)}</div>
+        <div class="issue-title"><span class="issue-id">#${Number(row.issueId)}</span> ${esc(row.subject)}</div>
         <div class="issue-meta">${esc(row.project)}${row.submitted ? ` · <span class="badge sent-badge">✓ enviada${row.submitted.timeEntryId ? ' #' + row.submitted.timeEntryId : ''}</span>` : ''}</div>
       </td>
       <td><select class="act" ${dis}>${activityOptions(row.activityId)}</select></td>
@@ -272,7 +272,7 @@ async function loadReview() {
   $('segRows').innerHTML = r.segments.length ? r.segments.map(s => `
     <tr>
       <td class="muted">${t(s.start)} – ${t(s.end)}${s.manual ? ' <span class="badge">manual</span>' : ''}</td>
-      <td><span class="issue-id">#${s.issueId}</span> ${esc(s.subject)}</td>
+      <td><span class="issue-id">#${Number(s.issueId)}</span> ${esc(s.subject)}</td>
       <td class="muted">${esc(actName(s.activityId))}</td>
       <td class="num">${hm((s.end - s.start) / 1000)}</td>
       <td class="seg-comment-cell"><input class="seg-comment" data-id="${esc(s.id)}" maxlength="500" placeholder="¿Qué has hecho? (obligatorio)" value="${esc(s.comment || '')}" ${segSent(s) ? 'disabled' : ''}></td>
@@ -368,7 +368,7 @@ async function loadSummary() {
   $('daily').innerHTML = daily.issues.length ? daily.issues.map(i => `
     <li>
       <div class="bar-label">
-        <div class="issue-title"><span class="issue-id">#${i.issueId}</span> ${esc(i.subject)}</div>
+        <div class="issue-title"><span class="issue-id">#${Number(i.issueId)}</span> ${esc(i.subject)}</div>
         <div class="bar-track"><div class="bar-fill" data-w="${(i.seconds / max * 100).toFixed(1)}"></div></div>
       </div>
       <span class="num">${hm(i.seconds)}</span>
@@ -385,7 +385,7 @@ async function loadSummary() {
   };
   $('weeklyHead').innerHTML = `<tr><th>Tarea</th>${weekly.days.map((d, i) => `<th class="day ${d === td ? 'today-col' : ''}">${dayNames[i]} ${d.slice(8)}</th>`).join('')}<th class="num">Total</th></tr>`;
   $('weekly').innerHTML = weekly.issues.length ? weekly.issues.map(i => `
-    <tr><td><div class="issue-title"><span class="issue-id">#${i.issueId}</span> ${esc(i.subject)}</div></td>
+    <tr><td><div class="issue-title"><span class="issue-id">#${Number(i.issueId)}</span> ${esc(i.subject)}</div></td>
     ${weekly.days.map(d => cell(i.perDay[d])).join('')}
     <td class="num"><b>${hm(i.seconds)}</b><div class="muted">${hrs(i.hours)}</div></td></tr>`).join('') +
     `<tr class="total"><td>Total</td>${weekly.days.map(d => `<td class="cell">${weekly.totals[d] ? hm(weekly.totals[d]) : ''}</td>`).join('')}<td class="num">${hm(weekly.seconds)}</td></tr>`

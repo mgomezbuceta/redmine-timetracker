@@ -60,13 +60,26 @@ function spanishNetError(err) {
   return msg ? new Error(`${msg} [${err.code}]`) : err;
 }
 
+const MAX_RESPONSE = 10 * 1024 * 1024; // 10 MB: de sobra para la API, corta respuestas anómalas
+
 class RedmineClient {
   constructor({ url, apiKey, caPath }) {
     if (!url) throw new Error('Falta la URL de Redmine');
     if (!apiKey) throw new Error('Falta la API key');
-    this.base = new URL(url.endsWith('/') ? url : url + '/');
+    this.base = RedmineClient.checkUrl(url);
     this.apiKey = apiKey;
     this.ca = buildCaList(caPath);
+  }
+
+  // La API key va en cada petición: sin TLS viajaría en claro. HTTP solo en el propio equipo.
+  static checkUrl(url) {
+    let base;
+    try { base = new URL(url.endsWith('/') ? url : url + '/'); } catch { throw new Error('La URL de Redmine no es válida.'); }
+    const local = ['localhost', '127.0.0.1', '[::1]'].includes(base.hostname);
+    if (base.protocol !== 'https:' && !(base.protocol === 'http:' && local)) {
+      throw new Error('La URL de Redmine debe empezar por https:// (por seguridad, la API key no se envía sin cifrar).');
+    }
+    return base;
   }
 
   request(method, path, body) {
@@ -87,7 +100,10 @@ class RedmineClient {
       const req = lib.request(u, opts, res => {
         let data = '';
         res.setEncoding('utf8');
-        res.on('data', c => (data += c));
+        res.on('data', c => {
+          data += c;
+          if (data.length > MAX_RESPONSE) req.destroy(new Error('Respuesta de Redmine demasiado grande.'));
+        });
         res.on('end', () => {
           let json = null;
           try { json = data ? JSON.parse(data) : null; } catch { /* no JSON */ }

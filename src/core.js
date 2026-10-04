@@ -144,4 +144,20 @@ function suggestStart(segments, date) {
   return last ? hhmm(last) : '09:00';
 }
 
-module.exports = { localDate, splitByDay, roundHours, buildReview, weekDates, dailySummary, weeklySummary, segmentsOfDate, manualSegment, suggestStart };
+// Filas a enviar a Redmine. De la ventana solo se acepta qué filas se envían, sus horas y
+// su actividad (validadas); la tarea y los comentarios salen de los tramos guardados.
+function prepareSubmission(rows, truthRows, activityIds) {
+  const truth = new Map(truthRows.map(g => [g.key, g]));
+  return rows.filter(r => r.include).map(r => {
+    const g = truth.get(r.key);
+    if (!g) throw new Error('Una de las filas ya no existe: recarga la revisión.');
+    const hours = Number(r.hours);
+    if (!(hours > 0 && hours <= 24)) throw new Error(`Las horas de #${g.issueId} deben estar entre 0 y 24.`);
+    const activityId = Number(r.activityId);
+    if (!activityIds.includes(activityId)) throw new Error(`Falta la actividad (o no es válida) en #${g.issueId}.`);
+    if (g.uncommented > 0) throw new Error(`Falta el comentario de algún tramo en #${g.issueId}. Complétalo en "Tramos registrados".`);
+    return { key: g.key, issueId: g.issueId, hours: Math.round(hours * 100) / 100, activityId, comments: g.comments };
+  });
+}
+
+module.exports = { prepareSubmission, localDate, splitByDay, roundHours, buildReview, weekDates, dailySummary, weeklySummary, segmentsOfDate, manualSegment, suggestStart };
