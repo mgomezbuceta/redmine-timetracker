@@ -44,6 +44,8 @@ document.querySelectorAll('[data-shift]').forEach(b => {
 // ---------- tarjeta "en curso" ----------
 function renderNow() {
   if (!state) return;
+  $('updateBanner').classList.toggle('hidden', !state.update);
+  if (state.update) $('updateVersion').textContent = state.update.version;
   const c = state.current;
   $('nowDot').className = 'dot' + (c ? ' on' : '');
   $('nowState').textContent = c ? 'En curso' : state.idlePrompt ? 'En pausa' : 'Parado';
@@ -170,12 +172,22 @@ $('mineBtn').onclick = () => { setChip('mineBtn'); $('q').value = ''; search('',
 $('recentBtn').onclick = loadRecent;
 $('projectFilter').onchange = () => $('searchForm').requestSubmit();
 
+$('updateDismiss').onclick = () => tt.call('update:dismiss');
+
 // ---------- acerca de ----------
 async function loadAbout() {
   const i = await tt.call('app:info');
   $('aboutVersion').textContent = i.version;
   $('aboutTech').textContent = `Electron ${i.electron} · Chromium ${i.chrome} · Node ${i.node} · ${i.platform}`;
 }
+$('checkUpdate').onclick = async e => {
+  e.preventDefault();
+  $('updateStatus').textContent = 'Buscando…';
+  try {
+    const r = await tt.call('update:check');
+    $('updateStatus').textContent = r.latest ? `· hay una versión nueva: ${r.latest}` : '· tienes la última versión';
+  } catch { $('updateStatus').textContent = '· no se ha podido consultar GitHub'; }
+};
 document.querySelectorAll('[data-link]').forEach(el => (el.onclick = e => {
   e.preventDefault();
   tt.call('app:open', el.dataset.link).catch(err => toast(err.message, true));
@@ -413,6 +425,7 @@ async function loadSettings() {
   form.idleMinutes.value = s.idleMinutes;
   form.rounding.value = s.rounding;
   form.onlyOpen.checked = s.onlyOpen;
+  form.checkUpdates.checked = s.checkUpdates !== false;
   form.writeEnabled.checked = s.writeEnabled;
 }
 
@@ -425,6 +438,7 @@ function settingsPayload() {
     idleMinutes: Number(form.idleMinutes.value),
     rounding: form.rounding.value,
     onlyOpen: form.onlyOpen.checked,
+    checkUpdates: form.checkUpdates.checked,
     writeEnabled: form.writeEnabled.checked
   };
 }

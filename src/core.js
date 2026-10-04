@@ -160,4 +160,13 @@ function prepareSubmission(rows, truthRows, activityIds) {
   });
 }
 
-module.exports = { prepareSubmission, localDate, splitByDay, roundHours, buildReview, weekDates, dailySummary, weeklySummary, segmentsOfDate, manualSegment, suggestStart };
+// ¿Es `latest` (p. ej. "v0.3.0") una versión estable posterior a `current`?
+function isNewer(latest, current) {
+  const parse = v => /^v?(\d+)\.(\d+)\.(\d+)$/.exec(String(v).trim())?.slice(1).map(Number);
+  const a = parse(latest), b = parse(current);
+  if (!a || !b) return false;
+  for (let i = 0; i < 3; i++) if (a[i] !== b[i]) return a[i] > b[i];
+  return false;
+}
+
+module.exports = { isNewer, prepareSubmission, localDate, splitByDay, roundHours, buildReview, weekDates, dailySummary, weeklySummary, segmentsOfDate, manualSegment, suggestStart };
