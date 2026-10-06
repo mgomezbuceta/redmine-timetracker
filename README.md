@@ -120,7 +120,7 @@ La primera vez se abre la pestaña **Ajustes**:
 
 1. **URL de Redmine**: la dirección de tu servidor, por ejemplo `https://redmine.tuempresa.com`. Tiene que ser `https://`: la app no envía la API key por una conexión sin cifrar.
 2. **API key**: en Redmine, *Mi cuenta → Clave de acceso a la API*. Son 40 caracteres hexadecimales.
-3. **Certificado de la CA interna** *(opcional)*: solo si el certificado HTTPS de tu Redmine lo firma una CA de tu empresa. Elige su `.crt`, `.pem` o `.cer` (PEM o DER). Si al probar la conexión ves *self signed certificate in certificate chain*, es esto lo que falta.
+3. **Certificado de la CA interna** *(opcional)*: la app ya confía en los certificados del sistema (almacén de Windows, Llavero de macOS y CAs de Linux), así que si tu navegador abre Redmine sin avisos, normalmente no hace falta. Si al probar la conexión ves *self signed certificate in certificate chain*, elige aquí el `.crt`, `.pem` o `.cer` (PEM o DER) de la **CA raíz** de tu empresa, no el del servidor. Desde el navegador: candado → certificado → *Ruta de certificación* (o *Jerarquía*) → el de arriba del todo → exportar.
 4. Pulsa **Probar conexión**: verás tu usuario y se cargarán las actividades.
 5. Elige la **actividad por defecto**, el **aviso de inactividad** (minutos) y el **redondeo**.
 6. **Permitir escribir en Redmine**: desactivado por defecto. Mientras lo esté, la app solo lee y el botón *Imputar en Redmine* no hace nada.

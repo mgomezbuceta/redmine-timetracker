@@ -38,6 +38,8 @@ test('CA interna: funciona con la raíz y da errores en español si falta', { sk
     execFileSync('openssl', ['x509', '-in', 'root.crt', '-outform', 'DER', '-out', 'root.der'], { cwd: dir });
     assert.equal((await new RedmineClient({ url, apiKey: 'k', caPath: path.join(dir, 'root.der') }).currentUser()).login, 'yo');
     assert.throws(() => new RedmineClient({ url, apiKey: 'k', caPath: path.join(dir, 'leaf.key') }), /no es un certificado válido/);
+    // Error habitual: exportar desde el navegador el certificado del servidor en vez del de la CA.
+    assert.throws(() => new RedmineClient({ url, apiKey: 'k', caPath: path.join(dir, 'leaf.crt') }), /certificado del propio servidor/);
     assert.throws(() => new RedmineClient({ url, apiKey: 'k', caPath: path.join(dir, 'no-existe.crt') }), /no existe/);
   } finally {
     srv.close();
