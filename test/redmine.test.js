@@ -92,3 +92,9 @@ test('respuestas demasiado grandes se cortan', async () => {
     await assert.rejects(c.request('GET', '/x.json'), /demasiado grande/);
   } finally { srv.close(); }
 });
+
+test('confía en las CAs del almacén del sistema (Windows, macOS y Linux)', { skip: !require('tls').getCACertificates && 'Node sin getCACertificates' }, () => {
+  const { buildCaList } = require('../src/redmine');
+  const list = new Set(buildCaList(null));
+  for (const pem of require('tls').getCACertificates('system')) assert.ok(list.has(pem));
+});

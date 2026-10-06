@@ -10,23 +10,28 @@ const { X509Certificate } = require('crypto');
 const SYSTEM_BUNDLE = '/etc/ssl/certs/ca-certificates.crt';
 const PEM_RE = /-----BEGIN CERTIFICATE-----[\s\S]+?-----END CERTIFICATE-----/g;
 
-// Node solo confía en su lista interna de CAs: le añadimos las del sistema y la indicada en Ajustes.
+// Node solo confía en su lista interna de CAs: le añadimos las del sistema (almacén de Windows,
+// llavero de macOS o bundle de Linux, donde suele estar ya la CA de la empresa) y la de Ajustes.
 function buildCaList(caPath) {
   const list = [...tls.rootCertificates];
+  try { list.push(...tls.getCACertificates('system')); } catch { /* Node antiguo: sin acceso al almacén */ }
   try { list.push(...(fs.readFileSync(SYSTEM_BUNDLE, 'utf8').match(PEM_RE) || [])); } catch { /* sin bundle del sistema */ }
   if (caPath) {
     let buf;
     try { buf = fs.readFileSync(caPath); } catch (e) {
       throw new Error(`No se puede leer el certificado ${caPath}: ${e.code === 'ENOENT' ? 'no existe' : e.code === 'EACCES' ? 'sin permiso de lectura' : e.message}`);
     }
-    const certs = buf.toString('latin1').match(PEM_RE);
-    if (certs) list.push(...certs);
-    else {
+    let certs = buf.toString('latin1').match(PEM_RE);
+    if (!certs) {
       // Sin cabecera PEM: se prueba como DER (binario), habitual en .crt exportados en Windows.
-      try { list.push(new X509Certificate(buf).toString()); } catch {
+      try { certs = [new X509Certificate(buf).toString()]; } catch {
         throw new Error(`El fichero ${caPath} no es un certificado válido (ni PEM ni DER).`);
       }
     }
+    if (!certs.some(pem => { try { return new X509Certificate(pem).ca; } catch { return false; } })) {
+      throw new Error(`${caPath} es el certificado del propio servidor, no el de la CA que lo firma. En el navegador, abre el candado → certificado → pestaña de jerarquía o ruta de certificación, selecciona el de arriba del todo (la CA raíz) y expórtalo.`);
+    }
+    list.push(...certs);
   }
   return list;
 }
@@ -204,4 +209,4 @@ class RedmineClient {
   }
 }
 
-module.exports = { RedmineClient };
+module.exports = { RedmineClient, buildCaList };
