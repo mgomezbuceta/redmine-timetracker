@@ -145,3 +145,16 @@ test('resúmenes: horas redondeadas a 0,25 como se imputan, proyecto y comentari
   assert.equal(b.perDayHours['2026-10-02'], 1.25);
   assert.deepEqual([w.totalsHours['2026-10-01'], w.totalsHours['2026-10-02'], w.hours], [0.75, 1.25, 2]);
 });
+
+test('contador redondeado: horas de hoy y de la tarea en curso, contando el tramo abierto', () => {
+  const now = at('2026-10-01', 12, 20);
+  const segs = [
+    { issueId: 10, activityId: 9, start: at('2026-10-01', 9), end: at('2026-10-01', 10) },
+    { issueId: 11, activityId: 9, start: at('2026-10-01', 10), end: at('2026-10-01', 10, 40) }
+  ];
+  const current = { issue: { id: 10 }, activityId: 9, start: at('2026-10-01', 12) };
+  // #10: 1 h + 20 min en curso = 1,25 h; #11: 40 min = 0,75 h
+  assert.deepEqual(core.liveHours(segs, current, now), { today: 2, current: 1.25 });
+  assert.deepEqual(core.liveHours(segs, null, now), { today: 1.75, current: 0 });
+  assert.deepEqual(core.liveHours(segs, current, now, 'up'), { today: 2.25, current: 1.5 });
+});

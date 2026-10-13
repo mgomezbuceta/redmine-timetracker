@@ -191,4 +191,18 @@ function uncommentedIds(segments, issueId, date) {
     .map(s => s.id);
 }
 
-module.exports = { uncommentedIds, isNewer, prepareSubmission, localDate, splitByDay, roundHours, buildReview, weekDates, dailySummary, weeklySummary, segmentsOfDate, manualSegment, suggestStart };
+// Horas redondeadas para el contador: total de hoy y grupo (tarea + actividad) en curso,
+// contando el tramo abierto. Mismo redondeo que la revisión y la imputación.
+function liveHours(segments, current, now, rounding) {
+  const all = current
+    ? [...segments, { issueId: current.issue.id, activityId: current.activityId, start: current.start, end: now }]
+    : segments;
+  const rows = buildReview(all, localDate(now), { rounding });
+  const key = current ? `${current.issue.id}|${current.activityId ?? ''}` : null;
+  return {
+    today: Math.round(rows.reduce((a, r) => a + r.hours, 0) * 100) / 100,
+    current: rows.find(r => r.key === key)?.hours || 0
+  };
+}
+
+module.exports = { liveHours, uncommentedIds, isNewer, prepareSubmission, localDate, splitByDay, roundHours, buildReview, weekDates, dailySummary, weeklySummary, segmentsOfDate, manualSegment, suggestStart };
