@@ -29,6 +29,15 @@ function render() {
   const p = state.idlePrompt;
   $('prompt').classList.toggle('hidden', !p);
   if (p) $('promptText').textContent = `Inactivo ${p.minutes} min en #${p.issue.id}. ¿Qué hago con ese tiempo?`;
+  // Comentario del trabajo recién parado: se enfoca solo al aparecer, para no robar el foco cada segundo.
+  const cp = state.commentPrompt;
+  const wasHidden = $('comment').classList.contains('hidden');
+  $('comment').classList.toggle('hidden', !cp);
+  if (cp && wasHidden) {
+    $('commentText').value = '';
+    $('commentText').placeholder = `¿Qué has hecho en #${cp.issue.id}?`;
+    $('commentText').focus();
+  }
 }
 
 tt.on('state', s => { state = s; render(); });
@@ -38,4 +47,10 @@ setInterval(render, 1000);
 $('toggle').onclick = () => tt.call('timer:toggle');
 $('task').onclick = () => tt.call('panel:open', 'tasks');
 $('menu').onclick = () => tt.call('widget:menu');
-document.querySelectorAll('.prompt button').forEach(b => (b.onclick = () => tt.call('idle:resolve', b.dataset.c)));
+document.querySelectorAll('#prompt button').forEach(b => (b.onclick = () => tt.call('idle:resolve', b.dataset.c)));
+$('comment').onsubmit = e => {
+  e.preventDefault();
+  if ($('commentText').value.trim()) tt.call('comment:save', $('commentText').value);
+};
+$('commentSkip').onclick = () => tt.call('comment:skip');
+$('commentText').onkeydown = e => { if (e.key === 'Escape') tt.call('comment:skip'); };

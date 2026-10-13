@@ -158,6 +158,7 @@ gh attestation verify redmine-timetracker_<versión>_amd64.deb -R mgomezbuceta/r
 |---|---|
 | Empezar a contar | Clic en el texto del widget → busca la tarea → **▶ Empezar**. |
 | Parar o reanudar | Botón ■ / ▶ del widget, el panel o el menú del icono de la bandeja. |
+| Comentar lo que has hecho | Al parar o cambiar de tarea, el widget te pide el comentario de ese trabajo (Enter para guardar, «Luego» para dejarlo para la revisión). |
 | Buscar en un proyecto concreto | Desplegable de proyecto bajo el buscador (favoritos primero, luego los proyectos en los que participas). |
 | Volver a una tarea reciente | Chip **Recientes** en el buscador. |
 | Imputar sin el contador | **＋ Horas** en cualquier tarea del buscador, o **＋ Tiempo manual** en *Revisión del día*: fecha, hora de inicio, horas, actividad y comentario. Se revisa e imputa como el resto. |
