@@ -132,9 +132,10 @@ function rememberRecent(issue) {
 }
 
 // Al dejar una tarea se pide el comentario de sus tramos de hoy que aún no lo tienen.
-function askComment(issue, at = Date.now()) {
+// `resume` (solo al parar a mano) permite cancelar la parada y seguir contando desde ese instante.
+function askComment(issue, at = Date.now(), resume = null) {
   const ids = core.uncommentedIds(data.data.segments, issue.id, core.localDate(at));
-  commentPrompt = ids.length ? { issue: { id: issue.id, subject: issue.subject }, ids } : null;
+  commentPrompt = ids.length ? { issue: { id: issue.id, subject: issue.subject }, ids, resume } : null;
   pushState();
   if (commentPrompt && widgetWin && !widgetWin.isDestroyed()) { widgetWin.show(); widgetWin.focus(); }
 }
@@ -142,8 +143,9 @@ function askComment(issue, at = Date.now()) {
 // Parada pedida por el usuario (no por inactividad ni al salir).
 function userStop() {
   const c = data.data.current;
-  stopTimer();
-  if (c) askComment(c.issue);
+  const at = Date.now();
+  stopTimer(at);
+  if (c) askComment(c.issue, at, { issue: c.issue, activityId: c.activityId, at });
 }
 
 function startTimer(issue, activityId, at = Date.now()) {
@@ -369,6 +371,13 @@ function registerIpc() {
     data.save(); pushState();
   });
   handle('comment:skip', () => { commentPrompt = null; pushState(); });
+  // Cancelar la parada: el contador sigue desde el momento en que se paró, sin perder tiempo.
+  handle('comment:cancel', () => {
+    const r = commentPrompt?.resume;
+    if (!r || data.data.current) return;
+    commentPrompt = null;
+    startTimer(r.issue, r.activityId, r.at);
+  });
   handle('panel:open', tab => openPanel(tab));
   handle('widget:menu', () => { buildMenu().popup({ window: widgetWin }); }); // sin devolver el menú: no se puede enviar a la ventana
 

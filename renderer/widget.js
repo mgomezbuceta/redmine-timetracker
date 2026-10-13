@@ -36,9 +36,11 @@ function render() {
   const cp = state.commentPrompt;
   const wasHidden = $('comment').classList.contains('hidden');
   $('comment').classList.toggle('hidden', !cp);
+  $('commentCancel').classList.toggle('hidden', !cp?.resume);
   if (cp && wasHidden) {
     $('commentText').value = '';
-    $('commentText').placeholder = `¿Qué has hecho en #${cp.issue.id}?`;
+    $('commentText').placeholder = '¿Qué has hecho?';
+    $('commentText').title = `Comentario del trabajo en #${cp.issue.id}`;
     $('commentText').focus();
   }
 }
@@ -56,4 +58,8 @@ $('comment').onsubmit = e => {
   if ($('commentText').value.trim()) tt.call('comment:save', $('commentText').value);
 };
 $('commentSkip').onclick = () => tt.call('comment:skip');
-$('commentText').onkeydown = e => { if (e.key === 'Escape') tt.call('comment:skip'); };
+$('commentCancel').onclick = () => tt.call('comment:cancel');
+// Esc cancela la parada si se puede (sigue contando); si no, deja el comentario para luego.
+$('commentText').onkeydown = e => {
+  if (e.key === 'Escape') tt.call(state.commentPrompt?.resume ? 'comment:cancel' : 'comment:skip');
+};
