@@ -235,6 +235,7 @@ function stateSnapshot() {
     commentPrompt: idlePrompt ? null : commentPrompt,
     lastIssue: data.data.lastIssue,
     todayBaseSeconds: todaySeconds() - (c ? (Date.now() - c.start) / 1000 : 0),
+    hours: core.liveHours(data.data.segments, c, Date.now(), settings.data.rounding), // redondeadas a 0,25 h
     configured: isConfigured(),
     writeEnabled: settings.data.writeEnabled,
     update: pendingUpdate()
@@ -369,7 +370,7 @@ function registerIpc() {
   });
   handle('comment:skip', () => { commentPrompt = null; pushState(); });
   handle('panel:open', tab => openPanel(tab));
-  handle('widget:menu', () => buildMenu().popup({ window: widgetWin }));
+  handle('widget:menu', () => { buildMenu().popup({ window: widgetWin }); }); // sin devolver el menú: no se puede enviar a la ventana
 
   handle('issues:search', async (q, projectId) => {
     const issues = await client().searchIssues(q, { onlyOpen: settings.data.onlyOpen, projectId: Number(projectId) || null });

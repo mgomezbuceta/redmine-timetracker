@@ -13,7 +13,10 @@ function render() {
   const c = state.current;
   const running = (c ? (Date.now() - c.start) / 1000 : 0);
   $('timer').textContent = fmt(running);
-  $('today').textContent = 'hoy ' + fmt(state.todayBaseSeconds + running, false);
+  // Horas redondeadas a 0,25 (lo que se imputará): la tarea en curso y el total de hoy.
+  const h = n => n.toFixed(2).replace('.', ',') + ' h';
+  $('today').textContent = (c ? h(state.hours.current) + ' · ' : '') + 'hoy ' + h(state.hours.today);
+  $('today').title = 'Tiempo real de hoy: ' + fmt(state.todayBaseSeconds + running, false);
   $('toggle').textContent = c ? '■' : '▶';
   $('toggle').className = 'btn ' + (c ? 'stop' : 'play');
   if (c) {

@@ -52,6 +52,7 @@ function renderNow() {
   const issue = c?.issue || state.lastIssue;
   $('nowTask').textContent = issue ? `#${issue.id} ${issue.subject}` : 'Sin tarea en curso';
   $('nowTimer').textContent = hms(c ? (Date.now() - c.start) / 1000 : 0);
+  $('nowHours').textContent = (c ? hrs(state.hours.current) + ' · ' : '') + 'hoy ' + hrs(state.hours.today);
   const btn = $('nowBtn');
   btn.textContent = c ? 'Parar' : 'Reanudar';
   btn.className = 'btn btn-block ' + (c ? 'btn-danger' : 'btn-primary');
