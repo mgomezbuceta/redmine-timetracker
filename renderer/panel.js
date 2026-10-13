@@ -191,7 +191,10 @@ $('checkUpdate').onclick = async e => {
 };
 document.querySelectorAll('[data-link]').forEach(el => (el.onclick = e => {
   e.preventDefault();
-  tt.call('app:open', el.dataset.link).catch(err => toast(err.message, true));
+  // En GNOME/Wayland el navegador abre la pestaña sin pasar al frente: se avisa para que no parezca que no hace nada.
+  tt.call('app:open', el.dataset.link)
+    .then(() => toast('Abierto en tu navegador: mira la pestaña nueva'))
+    .catch(err => toast(err.message, true));
 }));
 
 // ---------- tiempo manual (sin contador) ----------
