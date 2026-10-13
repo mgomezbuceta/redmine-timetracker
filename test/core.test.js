@@ -113,3 +113,48 @@ test('comparación de versiones para el aviso de actualización', () => {
   assert.equal(core.isNewer('basura', '0.2.0'), false);
   assert.equal(core.isNewer('v0.3.0-beta.1', '0.2.0'), false); // las versiones previas no se anuncian
 });
+
+test('comentario al parar: tramos del día de esa tarea que aún no tienen comentario', () => {
+  const segs = [
+    { id: 'a', issueId: 10, start: at('2026-10-01', 9), end: at('2026-10-01', 10), comment: 'Hecho' },
+    { id: 'b', issueId: 10, start: at('2026-10-01', 11), end: at('2026-10-01', 12) },
+    { id: 'c', issueId: 10, start: at('2026-10-01', 13), end: at('2026-10-01', 14), comment: '  ' },
+    { id: 'd', issueId: 11, start: at('2026-10-01', 15), end: at('2026-10-01', 16) },
+    { id: 'e', issueId: 10, start: at('2026-09-30', 9), end: at('2026-09-30', 10) }
+  ];
+  assert.deepEqual(core.uncommentedIds(segs, 10, '2026-10-01'), ['b', 'c']);
+  assert.deepEqual(core.uncommentedIds(segs, 12, '2026-10-01'), []);
+});
+
+test('resúmenes: horas redondeadas a 0,25 como se imputan, proyecto y comentarios', () => {
+  const segs = [
+    { issueId: 10, subject: 'A', project: 'Web', activityId: 9, start: at('2026-10-01', 9), end: at('2026-10-01', 9, 20), comment: 'Análisis' },
+    { issueId: 10, subject: 'A', project: 'Web', activityId: 8, start: at('2026-10-01', 10), end: at('2026-10-01', 10, 20), comment: ' Pruebas ' },
+    { issueId: 10, subject: 'A', project: 'Web', activityId: 8, start: at('2026-10-01', 11), end: at('2026-10-01', 11, 5), comment: 'Pruebas' },
+    { issueId: 11, subject: 'B', project: 'BI', activityId: 9, start: at('2026-10-02', 9), end: at('2026-10-02', 10, 10) }
+  ];
+  const d = core.dailySummary(segs, '2026-10-01');
+  // 20 min (act. 9) -> 0,25 h y 25 min (act. 8) -> 0,5 h: se imputan 0,75 h, no round(45 min).
+  assert.deepEqual(d.issues.map(i => [i.issueId, i.project, i.hours, i.comments]), [[10, 'Web', 0.75, ['Análisis', 'Pruebas']]]);
+  assert.equal(d.hours, 0.75);
+  const w = core.weeklySummary(segs, '2026-10-01');
+  const a = w.issues.find(i => i.issueId === 10), b = w.issues.find(i => i.issueId === 11);
+  assert.equal(a.project, 'Web');
+  assert.equal(a.perDayHours['2026-10-01'], 0.75);
+  assert.equal(a.hours, 0.75);
+  assert.equal(b.perDayHours['2026-10-02'], 1.25);
+  assert.deepEqual([w.totalsHours['2026-10-01'], w.totalsHours['2026-10-02'], w.hours], [0.75, 1.25, 2]);
+});
+
+test('contador redondeado: horas de hoy y de la tarea en curso, contando el tramo abierto', () => {
+  const now = at('2026-10-01', 12, 20);
+  const segs = [
+    { issueId: 10, activityId: 9, start: at('2026-10-01', 9), end: at('2026-10-01', 10) },
+    { issueId: 11, activityId: 9, start: at('2026-10-01', 10), end: at('2026-10-01', 10, 40) }
+  ];
+  const current = { issue: { id: 10 }, activityId: 9, start: at('2026-10-01', 12) };
+  // #10: 1 h + 20 min en curso = 1,25 h; #11: 40 min = 0,75 h
+  assert.deepEqual(core.liveHours(segs, current, now), { today: 2, current: 1.25 });
+  assert.deepEqual(core.liveHours(segs, null, now), { today: 1.75, current: 0 });
+  assert.deepEqual(core.liveHours(segs, current, now, 'up'), { today: 2.25, current: 1.5 });
+});

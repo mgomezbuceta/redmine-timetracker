@@ -17,3 +17,6 @@ html, body { margin: 0; background: transparent; font: 13px system-ui, sans-seri
 .prompt button { -webkit-app-region: no-drag; border: 0; border-radius: 6px; padding: 5px 9px; cursor: pointer; background: #3a3d46; color: #fff; }
 .prompt button[data-c="keep"] { background: #2f8f4e; }
 .hidden { display: none; }
+#comment { border-color: #2f8f4e; }
+.prompt input { -webkit-app-region: no-drag; flex: 1; min-width: 0; height: 30px; padding: 0 8px; border: 1px solid #3a3d46; border-radius: 6px; background: #14161a; color: #e8e8ea; font: inherit; user-select: text; }
+.prompt input:focus { outline: 2px solid #5b9cff; outline-offset: 1px; }

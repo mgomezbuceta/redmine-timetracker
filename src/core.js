@@ -81,38 +81,53 @@ function weekDates(date) {
   return out;
 }
 
+// Resumen del día por tarea (sumando actividades). Las horas son las que se imputarían:
+// redondeadas a 0,25 h por tarea y actividad, igual que en la revisión.
 function dailySummary(segments, date, rounding) {
   const rows = buildReview(segments, date, { rounding });
-  // Resumen por issue (sumando actividades)
   const byIssue = new Map();
   for (const r of rows) {
-    const x = byIssue.get(r.issueId) || { issueId: r.issueId, subject: r.subject, project: r.project, seconds: 0 };
+    const x = byIssue.get(r.issueId) || { issueId: r.issueId, subject: r.subject, project: r.project, seconds: 0, hours: 0, comments: [] };
     x.seconds += r.seconds;
+    x.hours = Math.round((x.hours + r.hours) * 100) / 100;
     byIssue.set(r.issueId, x);
   }
-  const issues = [...byIssue.values()].map(x => ({ ...x, hours: roundHours(x.seconds, rounding) }))
-    .sort((a, b) => b.seconds - a.seconds);
-  const seconds = issues.reduce((a, b) => a + b.seconds, 0);
-  return { date, issues, seconds, hours: rows.reduce((a, b) => a + b.hours, 0) };
+  for (const s of segmentsOfDate(segments, date)) {
+    const c = String(s.comment || '').trim(), x = byIssue.get(s.issueId);
+    if (c && !x.comments.includes(c)) x.comments.push(c);
+  }
+  const issues = [...byIssue.values()].sort((a, b) => b.seconds - a.seconds);
+  return {
+    date, issues,
+    seconds: issues.reduce((a, b) => a + b.seconds, 0),
+    hours: rows.reduce((a, b) => a + b.hours, 0)
+  };
 }
 
+// Resumen semanal: cada día se calcula como en dailySummary, así las horas coinciden con lo imputable.
 function weeklySummary(segments, date, rounding) {
   const days = weekDates(date);
   const byIssue = new Map();
-  const totals = Object.fromEntries(days.map(d => [d, 0]));
+  const totals = {}, totalsHours = {};
   for (const day of days) {
-    for (const s of segmentsOfDate(segments, day)) {
-      const sec = (s.end - s.start) / 1000;
-      const x = byIssue.get(s.issueId) || { issueId: s.issueId, subject: s.subject, project: s.project, perDay: {}, seconds: 0 };
-      x.perDay[day] = (x.perDay[day] || 0) + sec;
-      x.seconds += sec;
-      byIssue.set(s.issueId, x);
-      totals[day] += sec;
+    const d = dailySummary(segments, day, rounding);
+    totals[day] = d.seconds;
+    totalsHours[day] = d.hours;
+    for (const i of d.issues) {
+      const x = byIssue.get(i.issueId) || { issueId: i.issueId, subject: i.subject, project: i.project, perDay: {}, perDayHours: {}, seconds: 0, hours: 0 };
+      x.perDay[day] = i.seconds;
+      x.perDayHours[day] = i.hours;
+      x.seconds += i.seconds;
+      x.hours = Math.round((x.hours + i.hours) * 100) / 100;
+      byIssue.set(i.issueId, x);
     }
   }
-  const issues = [...byIssue.values()].map(x => ({ ...x, hours: roundHours(x.seconds, rounding) }))
-    .sort((a, b) => b.seconds - a.seconds);
-  return { days, issues, totals, seconds: Object.values(totals).reduce((a, b) => a + b, 0) };
+  const sum = o => Math.round(Object.values(o).reduce((a, b) => a + b, 0) * 100) / 100;
+  return {
+    days, totals, totalsHours,
+    issues: [...byIssue.values()].sort((a, b) => b.seconds - a.seconds),
+    seconds: sum(totals), hours: sum(totalsHours)
+  };
 }
 
 const hhmm = ts => { const d = new Date(ts); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
@@ -169,4 +184,25 @@ function isNewer(latest, current) {
   return false;
 }
 
-module.exports = { isNewer, prepareSubmission, localDate, splitByDay, roundHours, buildReview, weekDates, dailySummary, weeklySummary, segmentsOfDate, manualSegment, suggestStart };
+// Tramos de una tarea en un día que todavía no tienen comentario (para pedirlo al parar).
+function uncommentedIds(segments, issueId, date) {
+  return segmentsOfDate(segments, date)
+    .filter(s => s.issueId === issueId && !String(s.comment || '').trim())
+    .map(s => s.id);
+}
+
+// Horas redondeadas para el contador: total de hoy y grupo (tarea + actividad) en curso,
+// contando el tramo abierto. Mismo redondeo que la revisión y la imputación.
+function liveHours(segments, current, now, rounding) {
+  const all = current
+    ? [...segments, { issueId: current.issue.id, activityId: current.activityId, start: current.start, end: now }]
+    : segments;
+  const rows = buildReview(all, localDate(now), { rounding });
+  const key = current ? `${current.issue.id}|${current.activityId ?? ''}` : null;
+  return {
+    today: Math.round(rows.reduce((a, r) => a + r.hours, 0) * 100) / 100,
+    current: rows.find(r => r.key === key)?.hours || 0
+  };
+}
+
+module.exports = { liveHours, uncommentedIds, isNewer, prepareSubmission, localDate, splitByDay, roundHours, buildReview, weekDates, dailySummary, weeklySummary, segmentsOfDate, manualSegment, suggestStart };

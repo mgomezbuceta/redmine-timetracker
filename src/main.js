@@ -36,6 +36,7 @@ const HEARTBEAT_MS = 30_000, IDLE_POLL_MS = 15_000;
 
 let settings, data, keys, tray, widgetWin, panelWin;
 let idlePrompt = null; // { idleStart, issue, activityId }
+let commentPrompt = null; // { issue, ids }: tramos recién cerrados a los que falta el comentario
 let update = null; // { version } si hay una versión publicada más nueva
 
 // ---------- settings / datos ----------
@@ -130,9 +131,29 @@ function rememberRecent(issue) {
   data.data.recent = r.slice(0, 15);
 }
 
+// Al dejar una tarea se pide el comentario de sus tramos de hoy que aún no lo tienen.
+// `resume` (solo al parar a mano) permite cancelar la parada y seguir contando desde ese instante.
+function askComment(issue, at = Date.now(), resume = null) {
+  const ids = core.uncommentedIds(data.data.segments, issue.id, core.localDate(at));
+  commentPrompt = ids.length ? { issue: { id: issue.id, subject: issue.subject }, ids, resume } : null;
+  pushState();
+  if (commentPrompt && widgetWin && !widgetWin.isDestroyed()) { widgetWin.show(); widgetWin.focus(); }
+}
+
+// Parada pedida por el usuario (no por inactividad ni al salir).
+function userStop() {
+  const c = data.data.current;
+  const at = Date.now();
+  stopTimer(at);
+  if (c) askComment(c.issue, at, { issue: c.issue, activityId: c.activityId, at });
+}
+
 function startTimer(issue, activityId, at = Date.now()) {
+  const prev = data.data.current;
   stopTimer(at);
   idlePrompt = null;
+  if (prev && prev.issue.id !== issue.id) askComment(prev.issue, at); // cambio de tarea
+  else if (commentPrompt?.issue.id === issue.id) commentPrompt = null; // se retoma: ya se pedirá al parar
   activityId = activityId ?? settings.data.defaultActivityId ?? null;
   data.data.current = { issue, activityId, start: at, heartbeat: at };
   data.data.lastIssue = issue;
@@ -171,7 +192,7 @@ function resolveIdle(choice) {
     startTimer(issue, activityId, now);
   } else {
     data.save();
-    pushState();
+    askComment(issue, idleStart);
   }
 }
 
@@ -213,8 +234,10 @@ function stateSnapshot() {
   return {
     current: c ? { ...c, activityName: activityName(c.activityId) } : null,
     idlePrompt: idlePrompt ? { ...idlePrompt, minutes: Math.round((Date.now() - idlePrompt.idleStart) / 60000) } : null,
+    commentPrompt: idlePrompt ? null : commentPrompt,
     lastIssue: data.data.lastIssue,
     todayBaseSeconds: todaySeconds() - (c ? (Date.now() - c.start) / 1000 : 0),
+    hours: core.liveHours(data.data.segments, c, Date.now(), settings.data.rounding), // redondeadas a 0,25 h
     configured: isConfigured(),
     writeEnabled: settings.data.writeEnabled,
     update: pendingUpdate()
@@ -226,7 +249,7 @@ function pushState() {
   for (const w of [widgetWin, panelWin]) if (w && !w.isDestroyed()) w.webContents.send('state', st);
   if (widgetWin && !widgetWin.isDestroyed()) {
     const [x, y] = widgetWin.getPosition();
-    widgetWin.setBounds({ x, y, width: WIDGET_W, height: idlePrompt ? WIDGET_H_PROMPT : WIDGET_H });
+    widgetWin.setBounds({ x, y, width: WIDGET_W, height: idlePrompt || commentPrompt ? WIDGET_H_PROMPT : WIDGET_H });
   }
   updateTray();
 }
@@ -294,7 +317,7 @@ function buildMenu() {
   const upd = pendingUpdate();
   return Menu.buildFromTemplate([
     ...(upd ? [{ label: `⬆ Nueva versión ${upd.version} disponible`, click: () => shell.openExternal(LINKS.releases) }, { type: 'separator' }] : []),
-    c ? { label: `Parar #${c.issue.id}`, click: () => stopTimer() }
+    c ? { label: `Parar #${c.issue.id}`, click: () => userStop() }
       : { label: last ? `Reanudar #${last.id}` : 'Reanudar', enabled: Boolean(last), click: () => startTimer(last, data.data.lastActivityId) },
     { type: 'separator' },
     { label: 'Buscar tarea…', click: () => openPanel('tasks') },
@@ -320,9 +343,9 @@ function handle(ch, fn) {
 function registerIpc() {
   handle('state:get', () => stateSnapshot());
   handle('timer:start', (issue, activityId) => startTimer(issue, activityId));
-  handle('timer:stop', () => stopTimer());
+  handle('timer:stop', () => userStop());
   handle('timer:toggle', () => {
-    if (data.data.current) return stopTimer();
+    if (data.data.current) return userStop();
     if (idlePrompt) return resolveIdle('discard');
     if (data.data.lastIssue) return startTimer(data.data.lastIssue, data.data.lastActivityId);
     openPanel('tasks');
@@ -337,8 +360,26 @@ function registerIpc() {
     data.save(); pushState();
   });
   handle('idle:resolve', choice => resolveIdle(choice));
+  handle('comment:save', text => {
+    const comment = String(text || '').trim().slice(0, 500);
+    if (!comment) throw new Error('Escribe un comentario.');
+    if (!commentPrompt) return;
+    for (const s of data.data.segments) {
+      if (commentPrompt.ids.includes(s.id) && !String(s.comment || '').trim()) s.comment = comment;
+    }
+    commentPrompt = null;
+    data.save(); pushState();
+  });
+  handle('comment:skip', () => { commentPrompt = null; pushState(); });
+  // Cancelar la parada: el contador sigue desde el momento en que se paró, sin perder tiempo.
+  handle('comment:cancel', () => {
+    const r = commentPrompt?.resume;
+    if (!r || data.data.current) return;
+    commentPrompt = null;
+    startTimer(r.issue, r.activityId, r.at);
+  });
   handle('panel:open', tab => openPanel(tab));
-  handle('widget:menu', () => buildMenu().popup({ window: widgetWin }));
+  handle('widget:menu', () => { buildMenu().popup({ window: widgetWin }); }); // sin devolver el menú: no se puede enviar a la ventana
 
   handle('issues:search', async (q, projectId) => {
     const issues = await client().searchIssues(q, { onlyOpen: settings.data.onlyOpen, projectId: Number(projectId) || null });
