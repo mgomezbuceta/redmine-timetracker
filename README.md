@@ -4,7 +4,7 @@
 
 # Timetracker Redmine
 
-**Cronometra tu trabajo con un clic. Revísalo al final del día. Imputa en Redmine sin rellenar ni una sola hora a mano.**
+**Cronometra tu trabajo con un clic. Comenta lo que has hecho al parar. Imputa en Redmine sin rellenar ni una sola hora a mano.**
 
 [![Electron](https://img.shields.io/badge/Electron-44-47848F?logo=electron&logoColor=white)](https://www.electronjs.org/)
 [![Plataformas](https://img.shields.io/badge/Linux%20%7C%20Windows%20%7C%20macOS-escritorio-2fbf86)](#-instalación)
@@ -20,7 +20,7 @@
 
 ## ¿Por qué?
 
-Imputar horas en Redmine al final de la semana es una tarea de arqueología: ¿qué hice el martes a las once? **Timetracker Redmine** te quita ese problema. Un widget flotante siempre a la vista cuenta el tiempo de la tarea en la que estás, detecta cuándo te levantas de la silla y, al final del día, te presenta todo agrupado y redondeado para que lo revises y lo envíes a Redmine con un solo botón.
+Imputar horas en Redmine al final de la semana es una tarea de arqueología: ¿qué hice el martes a las once? **Timetracker Redmine** te quita ese problema. Un widget flotante siempre a la vista cuenta el tiempo de la tarea en la que estás, te pide un comentario cuando paras, detecta cuándo te levantas de la silla y, al final del día, te presenta todo agrupado y redondeado a 0,25 h para que lo revises y lo envíes a Redmine con un solo botón.
 
 Y lo hace sin riesgos: **la app no escribe nada en Redmine hasta que tú lo permites expresamente**.
 
@@ -28,7 +28,8 @@ Y lo hace sin riesgos: **la app no escribe nada en Redmine hasta que tú lo perm
 
 | | |
 |---|---|
-| ⏱️ **Widget flotante** | Pequeño, siempre encima, arrastrable y recuerda su posición. Muestra la tarea, el contador y el total del día. |
+| ⏱️ **Widget flotante** | Pequeño, siempre encima, arrastrable y recuerda su posición. Muestra la tarea, el cronómetro y las **horas redondeadas a 0,25 h** de la tarea en curso y del día: lo que ves es lo que se imputará. |
+| 💬 **Comentario al parar** | Al parar o cambiar de tarea, el widget te pregunta qué has hecho. *Guardar*, *Luego*… o *Cancelar*, y el contador sigue corriendo como si nada. |
 | 🔎 **Buscador inteligente** | Por número (`1234` o `#1234`) o por título. Con la caja vacía, tus tareas abiertas. |
 | ⭐ **Tus proyectos primero** | Por defecto busca en tus **proyectos favoritos** de Redmine. Un filtro te deja elegir cualquier proyecto activo en el que participes. |
 | 🌳 **Árbol de tareas** | Resultados agrupados por proyecto y con la jerarquía padre → subtareas, como en Redmine. |
@@ -36,34 +37,62 @@ Y lo hace sin riesgos: **la app no escribe nada en Redmine hasta que tú lo perm
 | 💤 **Detección de inactividad** | Si te ausentas o suspendes el equipo, para el reloj donde empezó la inactividad y te pregunta: *Sumar*, *Descartar* o *Parar*. |
 | ✍️ **Tiempo manual** | ¿Se te olvidó encender el contador? Elige la tarea, la fecha, la hora de inicio y las horas, y añádelo a mano. |
 | 📝 **Revisión del día** | Agrupada por tarea y actividad, con redondeo a 0,25 h. Cada tramo lleva **su comentario obligatorio**, y con ellos se forma el comentario de la entrada de tiempo. |
-| 📊 **Resúmenes** | Diario y semanal (de lunes a domingo), con barras y mapa de calor. |
+| 📊 **Resúmenes** | Diario y semanal (de lunes a domingo), en horas redondeadas tal y como se imputan, con el proyecto de cada tarea y los comentarios del día. |
 | 🔐 **API key como una contraseña** | Cifrada con el almacén seguro del sistema y nunca en claro en disco. |
-| 🏢 **Redmine corporativo** | Admite la CA interna de tu empresa (PEM o DER) sin desactivar jamás la verificación TLS. |
+| 🏢 **Redmine corporativo** | Confía en los certificados instalados en el sistema y admite la CA interna de tu empresa (PEM o DER), sin desactivar jamás la verificación TLS. |
 | 🔔 **Aviso de versión nueva** | Te avisa cuando hay una versión más reciente en GitHub, con un botón para descargarla. Se puede desactivar. |
 | 🌗 **Tema claro y oscuro** | Sigue automáticamente el tema del sistema. |
 
 <div align="center">
+<img src="capturas/widget.png" alt="Widget flotante contando tiempo, con las horas redondeadas" width="380">
+<img src="capturas/widget-comment.png" alt="El widget pide el comentario al parar" width="380">
+<br><br>
 <img src="capturas/dark-review.png" alt="Revisión del día con comentario obligatorio por tramo" width="49%">
-<img src="capturas/dark-summary.png" alt="Resúmenes diario y semanal" width="49%">
-<br>
-<img src="capturas/widget.png" alt="Widget flotante contando tiempo" width="380">
-<img src="capturas/widget-idle.png" alt="Aviso de inactividad del widget" width="380">
+<img src="capturas/dark-summary.png" alt="Resúmenes con horas redondeadas, proyecto y comentarios" width="49%">
 </div>
+
+<details>
+<summary>Más capturas: aviso de inactividad y tema claro</summary>
+<br>
+<div align="center">
+<img src="capturas/widget-idle.png" alt="Aviso de inactividad del widget" width="380">
+<br><br>
+<img src="capturas/light-tasks.png" alt="Buscador de tareas con el tema claro" width="820">
+</div>
+</details>
 
 ## ⚙️ Cómo funciona
 
 ```
- Buscar tarea ──▶ ▶ Empezar ──▶ Tramos de tiempo ──▶ Revisión del día ──▶ Imputar en Redmine
-                                  (en tu equipo)      (agrupa, redondea,    (solo si lo permites
-                                                       comentario por        y confirmas)
-                                                       tramo)
+ Buscar tarea ─▶ ▶ Empezar ─▶ ■ Parar + comentario ─▶ Revisión del día ─▶ Imputar en Redmine
+                               (tramos de tiempo,      (agrupa, redondea     (solo si lo permites
+                                en tu equipo)           a 0,25 h)             y confirmas)
 ```
 
-1. **Cuentas**: eliges una tarea y pulsas *▶ Empezar*. Cada vez que paras, cambias de tarea o te ausentas, se guarda un **tramo** de tiempo en tu equipo.
-2. **Revisas**: en *Revisión del día* los tramos se agrupan por tarea y actividad, con las horas redondeadas a 0,25 h (al más cercano o siempre hacia arriba). Puedes ajustar horas y actividad, desmarcar lo que no quieras enviar y escribir qué hiciste en cada tramo.
-3. **Imputas**: *Imputar en Redmine* crea una entrada de tiempo por tarea y actividad, con los comentarios de sus tramos. Las filas enviadas quedan marcadas con el número de la entrada y no se pueden reenviar por error.
+1. **Cuentas**: eliges una tarea y pulsas *▶ Empezar*. El widget muestra el cronómetro y, debajo, las horas redondeadas de esa tarea y del día.
+2. **Paras y comentas**: al parar o cambiar de tarea, el widget te pide el comentario de ese trabajo. Cada parada, cambio de tarea o ausencia guarda un **tramo** de tiempo en tu equipo.
+3. **Revisas**: en *Revisión del día* los tramos se agrupan por tarea y actividad, con las horas redondeadas a 0,25 h (al más cercano o siempre hacia arriba). Puedes ajustar horas y actividad, desmarcar lo que no quieras enviar y completar los comentarios que falten.
+4. **Imputas**: *Imputar en Redmine* crea una entrada de tiempo por tarea y actividad, con los comentarios de sus tramos. Las filas enviadas quedan marcadas con el número de la entrada y no se pueden reenviar por error.
 
 Todo el registro de tiempo vive en tu equipo. Redmine solo se consulta para buscar tareas y proyectos, y solo se escribe en él cuando tú lo decides.
+
+### El comentario al parar
+
+<div align="center">
+<img src="capturas/widget-comment.png" alt="Aviso de comentario del widget con Guardar, Luego y Cancelar" width="380">
+</div>
+
+| Opción | Qué hace |
+|---|---|
+| **Guardar** (o Enter) | Para el contador y guarda el comentario en los tramos de hoy de esa tarea que aún no lo tienen. |
+| **Luego** | Para el contador y deja el comentario para la *Revisión del día*, donde es obligatorio antes de imputar. |
+| **Cancelar** (o Esc) | No para: el contador sigue desde el instante en que pulsaste parar, sin perder tiempo. |
+
+El aviso también aparece al cambiar de tarea y al elegir *Parar* tras una inactividad (en esos casos sin *Cancelar*). No aparece en las pausas automáticas por inactividad ni al salir de la app.
+
+### Redondeo a 0,25 h
+
+La app cuenta el tiempo real, pero todo lo que se imputa va en fracciones de 0,25 h. El redondeo se hace **por tarea y actividad en cada día**, y es el mismo en el widget, en los resúmenes, en la revisión y en lo que llega a Redmine. En *Ajustes* eliges entre redondear al cuarto de hora más cercano o siempre hacia arriba. El tiempo real sigue visible en pequeño.
 
 ## 📦 Instalación
 
@@ -81,10 +110,10 @@ Todo el registro de tiempo vive en tu equipo. Redmine solo se consulta para busc
 ### 🐧 Linux
 
 ```bash
-sudo apt install ./redmine-timetracker_0.1.0_amd64.deb
+sudo apt install ./redmine-timetracker_<versión>_amd64.deb
 ```
 
-Después búscala en el menú de aplicaciones como **Timetracker Redmine**. Para actualizar, instala el `.deb` nuevo encima: tus datos se conservan.
+Después búscala en el menú de aplicaciones como **Timetracker Redmine**. Para actualizar, sal de la app (icono de la bandeja → *Salir*), instala el `.deb` nuevo encima y vuelve a abrirla: tus datos se conservan.
 
 > **Actualizaciones:** la app consulta GitHub al arrancar y cada 6 horas y, si hay una versión nueva, te avisa con un botón para descargarla (en el panel y en el menú de la bandeja). Solo lee el número de la última versión publicada; no envía ningún dato tuyo. Se desactiva en *Ajustes → Avisar de versiones nuevas*.
 
@@ -158,6 +187,7 @@ gh attestation verify redmine-timetracker_<versión>_amd64.deb -R mgomezbuceta/r
 |---|---|
 | Empezar a contar | Clic en el texto del widget → busca la tarea → **▶ Empezar**. |
 | Parar o reanudar | Botón ■ / ▶ del widget, el panel o el menú del icono de la bandeja. |
+| Saber cuánto llevo | Bajo el cronómetro del widget: horas redondeadas de la tarea en curso y total de hoy (pasa el ratón para ver el tiempo real). |
 | Comentar lo que has hecho | Al parar o cambiar de tarea, el widget te pide el comentario de ese trabajo (Enter para guardar, «Luego» para dejarlo para la revisión, «Cancelar» o Esc para no parar y seguir contando). |
 | Buscar en un proyecto concreto | Desplegable de proyecto bajo el buscador (favoritos primero, luego los proyectos en los que participas). |
 | Volver a una tarea reciente | Chip **Recientes** en el buscador. |
@@ -165,7 +195,8 @@ gh attestation verify redmine-timetracker_<versión>_amd64.deb -R mgomezbuceta/r
 | Ausentarme | No hagas nada: al volver, la app te pregunta qué hacer con ese tiempo. |
 | Cerrar el día | Menú → **Revisión del día**: comenta cada tramo, ajusta y pulsa **Imputar en Redmine**. |
 | Corregir un error | En *Tramos registrados* puedes borrar un tramo equivocado antes de imputar. |
-| Ver cómo va la semana | Pestaña **Resúmenes**. |
+| Ver cómo va el día o la semana | Pestaña **Resúmenes**: horas redondeadas por tarea, con su proyecto y los comentarios del día. |
+| Salir del todo | Icono de la bandeja (o ⋮ del widget) → **Salir**. Cerrar la ventana solo la oculta: la app sigue en la bandeja. |
 | Ver la versión o informar de un problema | Pestaña **Acerca de** (o menú del icono de la bandeja → *Acerca de*). |
 
 ### Dónde se guardan tus datos
@@ -180,6 +211,22 @@ gh attestation verify redmine-timetracker_<versión>_amd64.deb -R mgomezbuceta/r
 - `data.json`: tramos de tiempo, recientes y envíos realizados.
 
 Si la app se cierra de golpe con el reloj en marcha, al volver corta en el último latido (cada 30 s) y te pregunta qué hacer con el hueco.
+
+<div align="center">
+<img src="capturas/dark-manual.png" alt="Diálogo para imputar horas sin contador" width="49%">
+<img src="capturas/dark-about.png" alt="Pantalla Acerca de con el aviso de versión nueva" width="49%">
+</div>
+
+## 🩺 Problemas frecuentes
+
+| Síntoma | Causa y solución |
+|---|---|
+| *Tiempo de espera agotado… [ETIMEDOUT]* con la VPN conectada | Un cortafuegos por aplicación (OpenSnitch, Little Snitch, el del antivirus…) está bloqueando la app. Permítele conectar con tu Redmine y con `api.github.com` (aviso de versiones). |
+| *SELF_SIGNED_CERT_IN_CHAIN* o «CA que no es de confianza» | Tu Redmine usa una CA interna que el sistema no tiene instalada. Elige en *Ajustes* el certificado de la **CA raíz** (no el del servidor). |
+| He instalado una versión nueva y sigo viendo la anterior | La app seguía abierta en la bandeja. Sal con *Salir* y ábrela de nuevo. |
+| El botón *Imputar en Redmine* está desactivado | Falta activar *Permitir imputar horas* en *Ajustes*, o falta el comentario de algún tramo (se marca en rojo). |
+| No encuentro una tarea | Su proyecto está cerrado o no está entre tus favoritos: elige el proyecto en el desplegable del buscador o búscala por número. |
+| En Ubuntu no arranca desde el código fuente (`chrome-sandbox`) | Es la restricción de AppArmor: usa el `.deb` o aplica los dos comandos del apartado *Desde el código fuente*. |
 
 ## 🧑‍💻 Desarrollo
 
@@ -200,13 +247,14 @@ Los instaladores salen en `instaladores/`. Para generar los tres a la vez, lanza
 
 ```
 src/        proceso principal: temporizador, inactividad, cliente de Redmine, cifrado de la API key
-renderer/   interfaz: panel (tareas, revisión, resúmenes, ajustes) y widget flotante
+renderer/   interfaz: panel (tareas, revisión, resúmenes, ajustes, acerca de) y widget flotante
 assets/     iconos (generados con scripts/make-icons.js)
 test/       tests de la lógica, del cliente de Redmine contra un servidor simulado y del cifrado
 ```
 
 ### Notas técnicas
 
+- Toda la lógica de tiempo (tramos, redondeo, revisión, resúmenes y horas del contador) está en `src/core.js`, sin dependencias de Electron y con tests.
 - Usa la API REST estándar de Redmine (`/issues.json`, `/projects.json`, `/enumerations/time_entry_activities.json` y `POST /time_entries.json`), con la sintaxis de filtros `f[]/op/v`, necesaria para el filtro de favoritos (`bookmarks`).
 - En Linux fuerza XWayland (`--ozone-platform=x11`), porque en Wayland nativo una ventana no puede ponerse siempre encima.
 - En GNOME la inactividad se lee de Mutter por D-Bus (también en Wayland). En el resto de sistemas, del `powerMonitor` de Electron.
