@@ -125,3 +125,23 @@ test('comentario al parar: tramos del día de esa tarea que aún no tienen comen
   assert.deepEqual(core.uncommentedIds(segs, 10, '2026-10-01'), ['b', 'c']);
   assert.deepEqual(core.uncommentedIds(segs, 12, '2026-10-01'), []);
 });
+
+test('resúmenes: horas redondeadas a 0,25 como se imputan, proyecto y comentarios', () => {
+  const segs = [
+    { issueId: 10, subject: 'A', project: 'Web', activityId: 9, start: at('2026-10-01', 9), end: at('2026-10-01', 9, 20), comment: 'Análisis' },
+    { issueId: 10, subject: 'A', project: 'Web', activityId: 8, start: at('2026-10-01', 10), end: at('2026-10-01', 10, 20), comment: ' Pruebas ' },
+    { issueId: 10, subject: 'A', project: 'Web', activityId: 8, start: at('2026-10-01', 11), end: at('2026-10-01', 11, 5), comment: 'Pruebas' },
+    { issueId: 11, subject: 'B', project: 'BI', activityId: 9, start: at('2026-10-02', 9), end: at('2026-10-02', 10, 10) }
+  ];
+  const d = core.dailySummary(segs, '2026-10-01');
+  // 20 min (act. 9) -> 0,25 h y 25 min (act. 8) -> 0,5 h: se imputan 0,75 h, no round(45 min).
+  assert.deepEqual(d.issues.map(i => [i.issueId, i.project, i.hours, i.comments]), [[10, 'Web', 0.75, ['Análisis', 'Pruebas']]]);
+  assert.equal(d.hours, 0.75);
+  const w = core.weeklySummary(segs, '2026-10-01');
+  const a = w.issues.find(i => i.issueId === 10), b = w.issues.find(i => i.issueId === 11);
+  assert.equal(a.project, 'Web');
+  assert.equal(a.perDayHours['2026-10-01'], 0.75);
+  assert.equal(a.hours, 0.75);
+  assert.equal(b.perDayHours['2026-10-02'], 1.25);
+  assert.deepEqual([w.totalsHours['2026-10-01'], w.totalsHours['2026-10-02'], w.hours], [0.75, 1.25, 2]);
+});
