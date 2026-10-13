@@ -169,4 +169,11 @@ function isNewer(latest, current) {
   return false;
 }
 
-module.exports = { isNewer, prepareSubmission, localDate, splitByDay, roundHours, buildReview, weekDates, dailySummary, weeklySummary, segmentsOfDate, manualSegment, suggestStart };
+// Tramos de una tarea en un día que todavía no tienen comentario (para pedirlo al parar).
+function uncommentedIds(segments, issueId, date) {
+  return segmentsOfDate(segments, date)
+    .filter(s => s.issueId === issueId && !String(s.comment || '').trim())
+    .map(s => s.id);
+}
+
+module.exports = { uncommentedIds, isNewer, prepareSubmission, localDate, splitByDay, roundHours, buildReview, weekDates, dailySummary, weeklySummary, segmentsOfDate, manualSegment, suggestStart };

@@ -113,3 +113,15 @@ test('comparación de versiones para el aviso de actualización', () => {
   assert.equal(core.isNewer('basura', '0.2.0'), false);
   assert.equal(core.isNewer('v0.3.0-beta.1', '0.2.0'), false); // las versiones previas no se anuncian
 });
+
+test('comentario al parar: tramos del día de esa tarea que aún no tienen comentario', () => {
+  const segs = [
+    { id: 'a', issueId: 10, start: at('2026-10-01', 9), end: at('2026-10-01', 10), comment: 'Hecho' },
+    { id: 'b', issueId: 10, start: at('2026-10-01', 11), end: at('2026-10-01', 12) },
+    { id: 'c', issueId: 10, start: at('2026-10-01', 13), end: at('2026-10-01', 14), comment: '  ' },
+    { id: 'd', issueId: 11, start: at('2026-10-01', 15), end: at('2026-10-01', 16) },
+    { id: 'e', issueId: 10, start: at('2026-09-30', 9), end: at('2026-09-30', 10) }
+  ];
+  assert.deepEqual(core.uncommentedIds(segs, 10, '2026-10-01'), ['b', 'c']);
+  assert.deepEqual(core.uncommentedIds(segs, 12, '2026-10-01'), []);
+});
