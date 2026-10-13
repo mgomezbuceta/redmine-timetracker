@@ -284,7 +284,7 @@ async function loadReview() {
   $('segRows').innerHTML = r.segments.length ? r.segments.map(s => `
     <tr>
       <td class="muted">${t(s.start)} – ${t(s.end)}${s.manual ? ' <span class="badge">manual</span>' : ''}</td>
-      <td><span class="issue-id">#${Number(s.issueId)}</span> ${esc(s.subject)}</td>
+      <td><span class="issue-id">#${Number(s.issueId)}</span> ${esc(s.subject)}<div class="issue-meta">${esc(s.project)}</div></td>
       <td class="muted">${esc(actName(s.activityId))}</td>
       <td class="num">${hm((s.end - s.start) / 1000)}</td>
       <td class="seg-comment-cell"><input class="seg-comment" data-id="${esc(s.id)}" maxlength="500" placeholder="¿Qué has hecho? (obligatorio)" value="${esc(s.comment || '')}" ${segSent(s) ? 'disabled' : ''}></td>
@@ -371,36 +371,40 @@ $('sumDate').onchange = loadSummary;
 
 async function loadSummary() {
   const { daily, weekly } = await tt.call('summary:get', $('sumDate').value);
-  $('sumDay').textContent = hm(daily.seconds);
-  $('sumDayH').textContent = hrs(daily.hours) + ' redondeadas';
-  $('sumWeek').textContent = hm(weekly.seconds);
-  $('sumWeekH').textContent = hrs(weekly.issues.reduce((a, i) => a + i.hours, 0)) + ' redondeadas';
+  // Lo principal son las horas redondeadas a 0,25 (las que se imputan); el tiempo real, en pequeño.
+  $('sumDay').textContent = hrs(daily.hours);
+  $('sumDayH').textContent = hm(daily.seconds) + ' reales';
+  $('sumWeek').textContent = hrs(weekly.hours);
+  $('sumWeekH').textContent = hm(weekly.seconds) + ' reales';
 
   const max = Math.max(1, ...daily.issues.map(i => i.seconds));
   $('daily').innerHTML = daily.issues.length ? daily.issues.map(i => `
     <li>
       <div class="bar-label">
         <div class="issue-title"><span class="issue-id">#${Number(i.issueId)}</span> ${esc(i.subject)}</div>
+        <div class="issue-meta">${esc(i.project)}</div>
+        ${i.comments.length ? `<div class="issue-comments">${i.comments.map(esc).join(' · ')}</div>` : ''}
         <div class="bar-track"><div class="bar-fill" data-w="${(i.seconds / max * 100).toFixed(1)}"></div></div>
       </div>
-      <span class="num">${hm(i.seconds)}</span>
-      <span class="num muted">${hrs(i.hours)}</span>
+      <span class="num"><b>${hrs(i.hours)}</b></span>
+      <span class="num muted">${hm(i.seconds)}</span>
     </li>`).join('') : '<li class="empty">Sin tiempo registrado este día.</li>';
 
   const dayNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
   const td = today();
   const cellMax = Math.max(1, ...weekly.issues.flatMap(i => Object.values(i.perDay)));
-  const cell = sec => {
+  const h = n => n.toFixed(2).replace('.', ',');
+  const cell = (sec, hours) => {
     if (!sec) return '<td class="cell"><span class="muted">·</span></td>';
     const a = (0.12 + 0.5 * sec / cellMax).toFixed(2);
-    return `<td class="cell"><span data-a="${a}">${hm(sec)}</span></td>`;
+    return `<td class="cell"><span data-a="${a}" title="${hm(sec)} reales">${h(hours)}</span></td>`;
   };
   $('weeklyHead').innerHTML = `<tr><th>Tarea</th>${weekly.days.map((d, i) => `<th class="day ${d === td ? 'today-col' : ''}">${dayNames[i]} ${d.slice(8)}</th>`).join('')}<th class="num">Total</th></tr>`;
   $('weekly').innerHTML = weekly.issues.length ? weekly.issues.map(i => `
-    <tr><td><div class="issue-title"><span class="issue-id">#${Number(i.issueId)}</span> ${esc(i.subject)}</div></td>
-    ${weekly.days.map(d => cell(i.perDay[d])).join('')}
-    <td class="num"><b>${hm(i.seconds)}</b><div class="muted">${hrs(i.hours)}</div></td></tr>`).join('') +
-    `<tr class="total"><td>Total</td>${weekly.days.map(d => `<td class="cell">${weekly.totals[d] ? hm(weekly.totals[d]) : ''}</td>`).join('')}<td class="num">${hm(weekly.seconds)}</td></tr>`
+    <tr><td><div class="issue-title"><span class="issue-id">#${Number(i.issueId)}</span> ${esc(i.subject)}</div><div class="issue-meta">${esc(i.project)}</div></td>
+    ${weekly.days.map(d => cell(i.perDay[d], i.perDayHours[d])).join('')}
+    <td class="num"><b>${hrs(i.hours)}</b><div class="muted">${hm(i.seconds)}</div></td></tr>`).join('') +
+    `<tr class="total"><td>Total (h)</td>${weekly.days.map(d => `<td class="cell">${weekly.totals[d] ? h(weekly.totalsHours[d]) : ''}</td>`).join('')}<td class="num">${hrs(weekly.hours)}</td></tr>`
     : '<tr><td colspan="9" class="empty">Sin tiempo registrado esta semana.</td></tr>';
   // La CSP no permite style="" en el HTML; se aplica por CSSOM.
   document.querySelectorAll('#daily .bar-fill').forEach(el => (el.style.width = el.dataset.w + '%'));

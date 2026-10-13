@@ -271,3 +271,5 @@ input[type=checkbox]:not(.switch) { width: 18px; height: 18px; min-height: 0; ac
 .update-banner span { flex: 1; }
 .update-banner.hidden { display: none; }
 .about-version a { color: var(--accent); text-decoration: none; }
+
+.issue-comments { font-size: 12px; color: var(--text-2); margin: 2px 0 4px; white-space: normal; }
