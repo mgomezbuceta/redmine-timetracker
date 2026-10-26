@@ -35,6 +35,7 @@ const WIDGET_W = 380, WIDGET_H = 56, WIDGET_H_PROMPT = 112;
 const HEARTBEAT_MS = 30_000, IDLE_POLL_MS = 15_000;
 
 let settings, data, keys, tray, widgetWin, panelWin;
+let quitting = false;
 let idlePrompt = null; // { idleStart, issue, activityId }
 let commentPrompt = null; // { issue, ids }: tramos recién cerrados a los que falta el comentario
 let update = null; // { version } si hay una versión publicada más nueva
@@ -272,15 +273,24 @@ function createWidget() {
   widgetWin.setVisibleOnAllWorkspaces(true);
   widgetWin.loadFile(path.join(__dirname, '../renderer/widget.html'));
   widgetWin.once('ready-to-show', () => widgetWin.showInactive());
+  // Cerrar el widget (p. ej. Alt+F4) solo lo oculta: así la opción de la bandeja siempre puede volver a mostrarlo.
+  widgetWin.on('close', e => { if (!quitting) { e.preventDefault(); widgetWin.hide(); } });
   let t;
   widgetWin.on('move', () => {
     clearTimeout(t);
     t = setTimeout(() => {
+      if (!widgetWin || widgetWin.isDestroyed()) return;
       const [x, y] = widgetWin.getPosition();
       settings.data.widgetPos = { x, y };
       settings.save();
     }, 500);
   });
+}
+
+// Muestra u oculta el widget; si la ventana ya no existe, la vuelve a crear.
+function toggleWidget() {
+  if (!widgetWin || widgetWin.isDestroyed()) return createWidget();
+  if (widgetWin.isVisible()) widgetWin.hide(); else widgetWin.showInactive();
 }
 
 function openPanel(tab = 'tasks') {
@@ -326,7 +336,7 @@ function buildMenu() {
     { label: 'Ajustes', click: () => openPanel('settings') },
     { label: 'Acerca de', click: () => openPanel('about') },
     { type: 'separator' },
-    { label: 'Mostrar/ocultar widget', click: () => widgetWin.isVisible() ? widgetWin.hide() : widgetWin.showInactive() },
+    { label: 'Mostrar/ocultar widget', click: toggleWidget },
     { label: 'Salir', click: () => { stopTimer(); app.exit(0); } }
   ]);
 }
@@ -573,4 +583,4 @@ app.whenReady().then(() => {
   else if (!data.data.activities.length) client().activities().then(a => { data.data.activities = a; data.save(); }).catch(() => {});
 });
 
-app.on('before-quit', () => stopTimer());
+app.on('before-quit', () => { quitting = true; stopTimer(); });
